@@ -14,9 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.text.Normalizer;
 import java.util.List;
-import java.util.Locale;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,6 +31,7 @@ public class ChatbotService {
     private final ChatbotLeadRepository leadRepository;
     private final ChatbotKnowledgeService knowledgeService;
     private final GroqAiService groqAiService;
+    private final ChatbotGuardService chatbotGuardService;
 
     public ChatbotCreateConversationResponse createConversation() {
         ChatbotConversation conversation = conversationRepository.save(ChatbotConversation.builder()
@@ -60,24 +60,30 @@ public class ChatbotService {
                         .estado("ABIERTA")
                         .build()));
 
+        ChatbotMessageAnalysis analysis = resolveAnalysisWithConversationContext(conversation.getId(), chatbotGuardService.analyze(text));
+        if (analysis.hasVisitorName()) {
+            conversation.setNombreVisitante(analysis.visitorName());
+            conversationRepository.save(conversation);
+        }
+
         ChatbotMessage userMessage = messageRepository.save(ChatbotMessage.builder()
                 .conversacion(conversation)
                 .emisor("USER")
                 .mensaje(text)
-                .intencion(detectIntent(text))
-                .confianza(BigDecimal.valueOf(0.75))
+                .intencion(analysis.intent())
+                .confianza(analysis.confidence())
                 .build());
 
         maybeCreateLead(text, userMessage.getIntencion());
 
-        String answer = groqAiService.answer(text, knowledgeService.buildContext());
+        String answer = resolveAnswer(text, conversation, analysis);
 
         ChatbotMessage botMessage = messageRepository.save(ChatbotMessage.builder()
                 .conversacion(conversation)
                 .emisor("BOT")
                 .mensaje(answer)
                 .intencion(userMessage.getIntencion())
-                .confianza(BigDecimal.valueOf(0.80))
+                .confianza(analysis.hasDirectResponse() ? analysis.confidence() : BigDecimal.valueOf(0.80))
                 .build());
 
         return List.of(
@@ -100,17 +106,6 @@ public class ChatbotService {
         );
     }
 
-    private String detectIntent(String message) {
-        String text = normalize(message);
-        if (text.contains("matricula") || text.contains("vacante")) return "MATRICULA";
-        if (text.contains("pension") || text.contains("costo") || text.contains("precio")) return "COSTOS";
-        if (text.contains("horario")) return "HORARIO";
-        if (text.contains("direccion") || text.contains("ubicacion") || text.contains("donde")) return "UBICACION";
-        if (text.contains("ingresante") || text.contains("universidad") || text.contains("alumnos") || text.contains("ingresaron")) return "INGRESANTES";
-        if (text.contains("uniforme")) return "UNIFORME";
-        return "GENERAL";
-    }
-
     private void maybeCreateLead(String message, String intent) {
         Matcher phoneMatcher = PHONE_PATTERN.matcher(message);
         Matcher emailMatcher = EMAIL_PATTERN.matcher(message);
@@ -130,6 +125,44 @@ public class ChatbotService {
                 .build());
     }
 
+    private String resolveAnswer(String text, ChatbotConversation conversation, ChatbotMessageAnalysis analysis) {
+        if (analysis.hasDirectResponse()) {
+            return analysis.directResponse();
+        }
+
+        if ("PRESENTACION".equals(analysis.intent()) && analysis.hasVisitorName()) {
+            return "Hola **" + analysis.visitorName() + "**, gusto en saludarte. Puedo ayudarte con **matricula**, **horarios**, **ubicacion**, **pensiones**, **uniforme** o **ingresantes**.";
+        }
+
+        return groqAiService.answer(text, knowledgeService.buildContext(), analysis.intent(), conversation.getNombreVisitante());
+    }
+
+    private ChatbotMessageAnalysis resolveAnalysisWithConversationContext(Long conversationId, ChatbotMessageAnalysis analysis) {
+        if (!"SEGUIMIENTO".equals(analysis.intent())) {
+            return analysis;
+        }
+
+        return findLastUsefulIntent(conversationId)
+                .map(intent -> new ChatbotMessageAnalysis(intent, BigDecimal.valueOf(0.70), null))
+                .orElseGet(() -> new ChatbotMessageAnalysis(
+                        "NO_ENTENDIDO",
+                        BigDecimal.valueOf(0.25),
+                        "No te entendi bien. Si preguntas por un ano, dime el tema. Por ejemplo: ingresantes 2025."
+                ));
+    }
+
+    private Optional<String> findLastUsefulIntent(Long conversationId) {
+        return messageRepository.findByConversacionIdOrderByCreadoEnAsc(conversationId)
+                .stream()
+                .filter(message -> "USER".equals(message.getEmisor()))
+                .map(ChatbotMessage::getIntencion)
+                .filter(intent -> intent != null && !intent.isBlank())
+                .filter(intent -> !"NO_ENTENDIDO".equals(intent))
+                .filter(intent -> !"FUERA_DE_TEMA".equals(intent))
+                .filter(intent -> !"SEGUIMIENTO".equals(intent))
+                .reduce((previous, current) -> current);
+    }
+
     private ChatbotMessageDTO toDto(ChatbotMessage message) {
         return ChatbotMessageDTO.builder()
                 .id(message.getId())
@@ -141,8 +174,4 @@ public class ChatbotService {
                 .build();
     }
 
-    private String normalize(String text) {
-        String normalized = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
-        return normalized.toLowerCase(Locale.ROOT);
-    }
 }

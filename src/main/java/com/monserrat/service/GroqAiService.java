@@ -12,10 +12,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.text.Normalizer;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,13 +37,17 @@ public class GroqAiService {
     private String model;
 
     public String answer(String userMessage, String context) {
+        return answer(userMessage, context, null, null);
+    }
+
+    public String answer(String userMessage, String context, String intent, String visitorName) {
         String directAnswer = directAnswer(userMessage, context);
         if (directAnswer != null) {
             return directAnswer;
         }
 
         if (apiKey == null || apiKey.isBlank()) {
-            return fallbackAnswer(userMessage, context);
+            return fallbackAnswer(userMessage, context, intent);
         }
 
         try {
@@ -49,7 +56,7 @@ public class GroqAiService {
                     "temperature", 0.2,
                     "max_tokens", 450,
                     "messages", List.of(
-                            Map.of("role", "system", "content", systemPrompt(context)),
+                            Map.of("role", "system", "content", systemPrompt(context, visitorName)),
                             Map.of("role", "user", "content", userMessage)
                     )
             );
@@ -66,20 +73,21 @@ public class GroqAiService {
                     .send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                return fallbackAnswer(userMessage, context);
+                return fallbackAnswer(userMessage, context, intent);
             }
 
             JsonNode root = objectMapper.readTree(response.body());
             return root.path("choices").get(0).path("message").path("content").asText();
         } catch (Exception ignored) {
-            return fallbackAnswer(userMessage, context);
+            return fallbackAnswer(userMessage, context, intent);
         }
     }
 
-    private String systemPrompt(String context) {
+    private String systemPrompt(String context, String visitorName) {
         return """
                 Eres el Asistente Monserrat de la I.E.P. Nuestra Senora de Monserrat de Huancayo.
                 Responde en espanol claro, amable y breve.
+                Si conoces el nombre del visitante, puedes usarlo de forma natural sin repetirlo en cada mensaje.
                 Usa solamente la informacion institucional incluida en el contexto.
                 No inventes costos, vacantes, requisitos no definidos ni fechas no incluidas.
                 Si preguntan por pensiones, costos o informacion no disponible, deriva al correo institucional.
@@ -87,59 +95,67 @@ public class GroqAiService {
                 Si preguntan por ubicacion, horario o correo, responde de forma directa con esos datos.
                 Si preguntan por ingresantes de un ano, menciona algunos nombres del ano solicitado si estan en el contexto.
                 Evita responder con una frase generica si la respuesta esta claramente en el contexto.
+                Si el mensaje no tiene sentido, es solo simbolos, o esta fuera del tema institucional, responde que no entendiste y ofrece los temas disponibles.
+                No respondas preguntas externas como politica, deportes, recetas, programacion, clima, entretenimiento o finanzas.
 
                 CONTEXTO:
-                """ + context;
+                """ + (visitorName == null || visitorName.isBlank() ? "" : "Visitante: " + visitorName + "\n") + context;
     }
 
     private String directAnswer(String userMessage, String context) {
         String text = normalize(userMessage);
 
         if (text.contains("matricula") || text.contains("vacante")) {
-            return "Para informacion de matricula, escribenos a monserratcomplejoeducativo@gmail.com o visitanos en Jr. Cajamarca #563, Huancayo.";
+            return "**Matricula:** escribenos a **monserratcomplejoeducativo@gmail.com** o visitanos en **Jr. Cajamarca #563, Huancayo**.";
         }
         if (text.contains("pension") || text.contains("costo") || text.contains("precio")) {
-            return "Para informacion sobre pensiones o costos, comunicate directamente al correo monserratcomplejoeducativo@gmail.com.";
+            return "**Pensiones o costos:** comunicate directamente al correo **monserratcomplejoeducativo@gmail.com**.";
+        }
+        if (text.contains("uniforme") || text.contains("buzo") || text.contains("vestimenta")) {
+            return "**Uniforme:** para informacion actualizada, comunicate con la institucion al correo **monserratcomplejoeducativo@gmail.com** o visitanos en **Jr. Cajamarca #563, Huancayo**.";
         }
         if (text.contains("horario")) {
-            return extractSingleLine(context, "Horario", "El horario de atencion institucional es Lun-Vie 7:30am-5:00pm.", "El horario de atencion institucional es %s.");
+            return extractSingleLine(context, "Horario", "**Horario de atencion:** Lun-Vie 7:30am-5:00pm.", "**Horario de atencion:** %s.");
         }
         if (text.contains("direccion") || text.contains("ubicacion") || text.contains("donde queda") || text.contains("donde esta")) {
-            return extractSingleLine(context, "Direccion", "Estamos en Jr. Cajamarca #563, Huancayo. Tambien puedes escribirnos a monserratcomplejoeducativo@gmail.com.", "Estamos en %s. Tambien puedes escribirnos a monserratcomplejoeducativo@gmail.com.");
+            return extractSingleLine(context, "Direccion", "**Ubicacion:** Jr. Cajamarca #563, Huancayo.\n**Contacto:** monserratcomplejoeducativo@gmail.com.", "**Ubicacion:** %s.\n**Contacto:** monserratcomplejoeducativo@gmail.com.");
         }
         if (text.contains("correo") || text.contains("email")) {
-            return extractSingleLine(context, "Correo", "Puedes escribirnos a monserratcomplejoeducativo@gmail.com.", "Puedes escribirnos a %s.");
+            return extractSingleLine(context, "Correo", "**Correo:** monserratcomplejoeducativo@gmail.com.", "**Correo:** %s.");
         }
         if (text.contains("ingresaron") || text.contains("ingresante") || text.contains("alumnos") || text.contains("universidad")) {
             String byYear = answerIngresantesByYear(text, context);
             if (byYear != null) {
                 return byYear;
             }
-            return "La institucion registra ingresantes a universidades como UNCP, UNMSM, UNI, UPLA, UNFV, UNALM, UNH y USMP. Puedes revisar la seccion Ingresantes para ver el detalle por ano.";
+            return answerIngresantesList(context);
         }
         return null;
     }
 
-    private String fallbackAnswer(String userMessage, String context) {
+    private String fallbackAnswer(String userMessage, String context, String intent) {
         String text = normalize(userMessage);
-        if (text.contains("matricula")) {
-            return "Para informacion de matricula, escribenos a monserratcomplejoeducativo@gmail.com o visitanos en Jr. Cajamarca #563, Huancayo.";
+        if (text.contains("matricula") || "MATRICULA".equals(intent)) {
+            return "**Matricula:** escribenos a **monserratcomplejoeducativo@gmail.com** o visitanos en **Jr. Cajamarca #563, Huancayo**.";
         }
-        if (text.contains("horario")) {
-            return extractSingleLine(context, "Horario", "El horario de atencion institucional es Lun-Vie 7:30am-5:00pm.", "El horario de atencion institucional es %s.");
+        if (text.contains("horario") || "HORARIO".equals(intent)) {
+            return extractSingleLine(context, "Horario", "**Horario de atencion:** Lun-Vie 7:30am-5:00pm.", "**Horario de atencion:** %s.");
         }
-        if (text.contains("direccion") || text.contains("ubicacion") || text.contains("donde queda") || text.contains("donde esta")) {
-            return extractSingleLine(context, "Direccion", "Estamos en Jr. Cajamarca #563, Huancayo. Tambien puedes escribirnos a monserratcomplejoeducativo@gmail.com.", "Estamos en %s. Tambien puedes escribirnos a monserratcomplejoeducativo@gmail.com.");
+        if (text.contains("direccion") || text.contains("ubicacion") || text.contains("donde queda") || text.contains("donde esta") || "UBICACION".equals(intent)) {
+            return extractSingleLine(context, "Direccion", "**Ubicacion:** Jr. Cajamarca #563, Huancayo.\n**Contacto:** monserratcomplejoeducativo@gmail.com.", "**Ubicacion:** %s.\n**Contacto:** monserratcomplejoeducativo@gmail.com.");
         }
-        if (text.contains("ingresante") || text.contains("universidad") || text.contains("alumnos") || text.contains("ingresaron")) {
+        if (text.contains("ingresante") || text.contains("universidad") || text.contains("alumnos") || text.contains("ingresaron") || "INGRESANTES".equals(intent)) {
             String byYear = answerIngresantesByYear(text, context);
             if (byYear != null) {
                 return byYear;
             }
-            return "La institucion registra ingresantes a universidades como UNCP, UNMSM, UNI, UPLA, UNFV, UNALM, UNH y USMP. Puedes revisar la seccion Ingresantes para ver el detalle por ano.";
+            return answerIngresantesList(context);
         }
-        if (text.contains("pension") || text.contains("costo") || text.contains("precio")) {
-            return "Para informacion sobre pensiones o costos, comunicate directamente al correo monserratcomplejoeducativo@gmail.com.";
+        if (text.contains("pension") || text.contains("costo") || text.contains("precio") || "COSTOS".equals(intent)) {
+            return "**Pensiones o costos:** comunicate directamente al correo **monserratcomplejoeducativo@gmail.com**.";
+        }
+        if (text.contains("uniforme") || text.contains("buzo") || text.contains("vestimenta") || "UNIFORME".equals(intent)) {
+            return "**Uniforme:** para informacion actualizada, comunicate con la institucion al correo **monserratcomplejoeducativo@gmail.com** o visitanos en **Jr. Cajamarca #563, Huancayo**.";
         }
         return "Puedo ayudarte con matricula, horarios, ubicacion, niveles, ingresantes, videos y redes institucionales. Para una consulta especifica, escribenos a monserratcomplejoeducativo@gmail.com.";
     }
@@ -151,18 +167,68 @@ public class GroqAiService {
         }
 
         String year = matcher.group(1);
-        List<String> names = Arrays.stream(context.split("\\R"))
-                .filter(line -> line.startsWith("- "))
-                .filter(line -> line.contains(" | " + year + " | "))
-                .map(line -> line.substring(2).split("\\|")[0].trim())
+        List<IngresanteInfo> ingresantes = parseIngresantes(context).stream()
+                .filter(ingresante -> year.equals(ingresante.anio()))
                 .limit(5)
                 .toList();
 
-        if (names.isEmpty()) {
+        if (ingresantes.isEmpty()) {
             return "No encontre ingresantes registrados para " + year + " en este momento.";
         }
 
-        return "En " + year + " figuran estos ingresantes: " + String.join(", ", names) + ". Si deseas, tambien puedo indicarte sus universidades y carreras.";
+        return "**Ingresantes registrados en " + year + ":**\n" + formatIngresantes(ingresantes);
+    }
+
+    private String answerIngresantesList(String context) {
+        List<IngresanteInfo> ingresantes = parseIngresantes(context);
+        if (ingresantes.isEmpty()) {
+            return "No encontre ingresantes registrados en este momento.";
+        }
+
+        String grouped = ingresantes.stream()
+                .sorted(Comparator.comparing(IngresanteInfo::anio).reversed().thenComparing(IngresanteInfo::universidad))
+                .collect(Collectors.groupingBy(
+                        IngresanteInfo::anio,
+                        java.util.LinkedHashMap::new,
+                        Collectors.toList()
+                ))
+                .entrySet()
+                .stream()
+                .map(entry -> entry.getKey() + ":\n" + formatIngresantes(entry.getValue()))
+                .collect(Collectors.joining("\n\n"));
+
+        return "**Lista de ingresantes registrados:**\n" + grouped;
+    }
+
+    private String formatIngresantes(List<IngresanteInfo> ingresantes) {
+        return ingresantes.stream()
+                .map(ingresante -> "- " + ingresante.nombre() + " - " + ingresante.universidad() + " - " + ingresante.carrera() + " (" + ingresante.tipoSeleccion() + ")")
+                .collect(Collectors.joining("\n"));
+    }
+
+    private List<IngresanteInfo> parseIngresantes(String context) {
+        List<IngresanteInfo> ingresantes = new ArrayList<>();
+
+        for (String line : context.split("\\R")) {
+            if (!line.startsWith("- ") || !line.contains(" | ")) {
+                continue;
+            }
+
+            String[] parts = line.substring(2).split("\\|");
+            if (parts.length < 5) {
+                continue;
+            }
+
+            ingresantes.add(new IngresanteInfo(
+                    parts[0].trim(),
+                    parts[1].trim(),
+                    parts[2].trim(),
+                    parts[3].trim(),
+                    parts[4].trim()
+            ));
+        }
+
+        return ingresantes;
     }
 
     private String extractSingleLine(String context, String label, String fallback, String format) {
@@ -181,5 +247,8 @@ public class GroqAiService {
     private String normalize(String text) {
         String normalized = Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         return normalized.toLowerCase(Locale.ROOT);
+    }
+
+    private record IngresanteInfo(String nombre, String universidad, String carrera, String anio, String tipoSeleccion) {
     }
 }
