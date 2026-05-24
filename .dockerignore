@@ -1,0 +1,7 @@
+target
+.idea
+backend.log
+backend.err.log
+monserrat-frontend
+.git
+*.iml
