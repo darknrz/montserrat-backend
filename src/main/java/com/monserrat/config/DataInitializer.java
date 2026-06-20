@@ -1,16 +1,21 @@
 package com.monserrat.config;
 
 import com.monserrat.entity.Admin;
+import com.monserrat.entity.AsignacionAcademica;
 import com.monserrat.entity.ChatbotFaq;
 import com.monserrat.entity.Ingreso;
 import com.monserrat.entity.Institution;
 import com.monserrat.entity.RedSocial;
+import com.monserrat.entity.RolUsuario;
+import com.monserrat.entity.UsuarioAcademico;
 import com.monserrat.entity.Video;
 import com.monserrat.repository.AdminRepository;
+import com.monserrat.repository.AsignacionAcademicaRepository;
 import com.monserrat.repository.ChatbotFaqRepository;
 import com.monserrat.repository.IngresoRepository;
 import com.monserrat.repository.InstitutionRepository;
 import com.monserrat.repository.RedSocialRepository;
+import com.monserrat.repository.UsuarioAcademicoRepository;
 import com.monserrat.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +47,8 @@ public class DataInitializer {
             IngresoRepository ingresoRepo,
             VideoRepository videoRepo,
             RedSocialRepository redSocialRepo,
+            UsuarioAcademicoRepository usuarioAcademicoRepo,
+            AsignacionAcademicaRepository asignacionRepo,
             ChatbotFaqRepository chatbotFaqRepo) {
 
         return args -> {
@@ -147,7 +154,59 @@ public class DataInitializer {
                 log.info("{} preguntas frecuentes del chatbot cargadas", faqs.size());
             }
 
+            if (!usuarioAcademicoRepo.existsByDni("12345678")) {
+                usuarioAcademicoRepo.save(UsuarioAcademico.builder()
+                        .dni("12345678")
+                        .password(passwordEncoder.encode("12345678"))
+                        .nombre("Docente Demo")
+                        .rol(RolUsuario.DOCENTE)
+                        .materia("Matematica")
+                        .especialidad("Matematica")
+                        .telefono("900000001")
+                        .debeCambiarContrasena(true)
+                        .activo(true)
+                        .estado(com.monserrat.entity.EstadoUsuario.ACTIVO)
+                        .build());
+                log.info("Docente demo creado con DNI 12345678");
+            }
+
+            if (!usuarioAcademicoRepo.existsByDni("87654321")) {
+                usuarioAcademicoRepo.save(UsuarioAcademico.builder()
+                        .dni("87654321")
+                        .password(passwordEncoder.encode("87654321"))
+                        .nombre("Alumno Demo")
+                        .rol(RolUsuario.ALUMNO)
+                        .nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA)
+                        .grado(com.monserrat.entity.Grado.QUINTO_SECUNDARIA)
+                        .seccion(com.monserrat.entity.Seccion.A)
+                        .telefono("900000002")
+                        .estado(com.monserrat.entity.EstadoUsuario.ACTIVO)
+                        .estadoMatricula(com.monserrat.entity.EstadoMatricula.MATRICULADO)
+                        .pensionPagada(false)
+                        .pensionObservacion("Pendiente de regularizacion")
+                        .debeCambiarContrasena(true)
+                        .activo(true)
+                        .build());
+                log.info("Alumno demo creado con DNI 87654321");
+            }
+
+            UsuarioAcademico docenteDemo = usuarioAcademicoRepo.findByDni("12345678").orElse(null);
+            UsuarioAcademico alumnoDemo = usuarioAcademicoRepo.findByDni("87654321").orElse(null);
+            if (docenteDemo != null && alumnoDemo != null && asignacionRepo.count() == 0) {
+                asignacionRepo.save(AsignacionAcademica.builder()
+                        .docente(docenteDemo)
+                        .alumno(alumnoDemo)
+                        .curso(com.monserrat.entity.CursoAcademico.MATEMATICA)
+                        .nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA)
+                        .grado(com.monserrat.entity.Grado.QUINTO_SECUNDARIA)
+                        .seccion(com.monserrat.entity.Seccion.A)
+                        .activo(true)
+                        .build());
+                log.info("Asignacion academica demo creada");
+            }
+
             log.info("DataInitializer completado - I.E.P. Nuestra Senora de Monserrat");
         };
     }
 }
+

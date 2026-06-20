@@ -1,22 +1,4 @@
 [INFO] Scanning for projects...
-Downloading from central: https://repo.maven.apache.org/maven2/org/flywaydb/maven-metadata.xml
-Downloading from central: https://repo.maven.apache.org/maven2/org/springframework/boot/maven-metadata.xml
-Downloading from central: https://repo.maven.apache.org/maven2/org/jooq/maven-metadata.xml
-Downloading from central: https://repo.maven.apache.org/maven2/io/github/git-commit-id/maven-metadata.xml
-Progress (1): 249 BProgress (2): 249 B | 255 BProgress (3): 249 B | 255 B | 398 BProgress (4): 249 B | 255 B | 398 B | 234 B                                           Downloaded from central: https://repo.maven.apache.org/maven2/org/jooq/maven-metadata.xml (398 B at 333 B/s)
-Downloaded from central: https://repo.maven.apache.org/maven2/org/springframework/boot/maven-metadata.xml (249 B at 208 B/s)
-Downloaded from central: https://repo.maven.apache.org/maven2/org/flywaydb/maven-metadata.xml (234 B at 195 B/s)
-Downloaded from central: https://repo.maven.apache.org/maven2/io/github/git-commit-id/maven-metadata.xml (255 B at 213 B/s)
-Downloading from central: https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/maven-metadata.xml
-Downloading from central: https://repo.maven.apache.org/maven2/org/graalvm/buildtools/maven-metadata.xml
-Downloading from central: https://repo.maven.apache.org/maven2/org/liquibase/maven-metadata.xml
-Downloading from central: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-metadata.xml
-Progress (1): 242 BProgress (2): 242 B | 394 BProgress (3): 242 B | 394 B | 375 BProgress (4): 242 B | 394 B | 375 B | 4.6 kBProgress (4): 242 B | 394 B | 375 B | 9.7 kBProgress (4): 242 B | 394 B | 375 B | 14 kB                                            Downloaded from central: https://repo.maven.apache.org/maven2/org/graalvm/buildtools/maven-metadata.xml (242 B at 2.5 kB/s)
-Downloading from central: https://repo.maven.apache.org/maven2/org/codehaus/mojo/maven-metadata.xml
-Downloaded from central: https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/maven-metadata.xml (375 B at 3.8 kB/s)
-Downloaded from central: https://repo.maven.apache.org/maven2/org/liquibase/maven-metadata.xml (394 B at 4.1 kB/s)
-Downloaded from central: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-metadata.xml (14 kB at 154 kB/s)
-Progress (1): 3.1 kBProgress (1): 7.7 kBProgress (1): 12 kB Progress (1): 17 kBProgress (1): 20 kBProgress (1): 21 kB                   Downloaded from central: https://repo.maven.apache.org/maven2/org/codehaus/mojo/maven-metadata.xml (21 kB at 104 kB/s)
 [INFO] 
 [INFO] ------------------< com.monserrat:monserrat-backend >-------------------
 [INFO] Building monserrat-backend 1.0.0
@@ -33,7 +15,7 @@ Progress (1): 3.1 kBProgress (1): 7.7 kBProgress (1): 12 kB Progress (1): 17 
 [INFO] Nothing to compile - all classes are up to date
 [INFO] 
 [INFO] --- resources:3.3.1:testResources (default-testResources) @ monserrat-backend ---
-[INFO] skip non existing resourceDirectory C:\tesis\monserrat-backend\src\test\resources
+[INFO] skip non existing resourceDirectory C:\tesis-montserrat\monserrat-backend\src\test\resources
 [INFO] 
 [INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ monserrat-backend ---
 [INFO] Nothing to compile - all classes are up to date
@@ -52,344 +34,27 @@ Progress (1): 3.1 kBProgress (1): 7.7 kBProgress (1): 12 kB Progress (1): 17 
  =========|_|==============|___/=/_/_/_/
  :: Spring Boot ::                (v3.2.3)
 
-2026-05-16T15:52:27.875-05:00  INFO 15672 --- [           main] c.m.m.MonserratBackendApplication        : Starting MonserratBackendApplication using Java 21.0.10 with PID 15672 (C:\tesis\monserrat-backend\target\classes started by zelvi in C:\tesis\monserrat-backend)
-2026-05-16T15:52:27.879-05:00 DEBUG 15672 --- [           main] c.m.m.MonserratBackendApplication        : Running with Spring Boot v3.2.3, Spring v6.1.4
-2026-05-16T15:52:27.880-05:00  INFO 15672 --- [           main] c.m.m.MonserratBackendApplication        : No active profile set, falling back to 1 default profile: "default"
-2026-05-16T15:52:28.840-05:00  INFO 15672 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-05-16T15:52:28.979-05:00  INFO 15672 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 126 ms. Found 9 JPA repository interfaces.
-2026-05-16T15:52:30.531-05:00  INFO 15672 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
-2026-05-16T15:52:30.562-05:00  INFO 15672 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-05-16T15:52:30.564-05:00  INFO 15672 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.19]
-2026-05-16T15:52:30.689-05:00  INFO 15672 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-05-16T15:52:30.691-05:00  INFO 15672 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2723 ms
-2026-05-16T15:52:30.929-05:00  INFO 15672 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-05-16T15:52:31.044-05:00  INFO 15672 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.4.Final
-2026-05-16T15:52:31.134-05:00  INFO 15672 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-05-16T15:52:31.716-05:00  INFO 15672 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-05-16T15:52:31.772-05:00  INFO 15672 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-05-16T15:52:32.092-05:00  INFO 15672 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@7196a8f1
-2026-05-16T15:52:32.095-05:00  INFO 15672 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-05-16T15:52:32.160-05:00  WARN 15672 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-05-16T15:52:34.468-05:00  INFO 15672 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-05-16T15:52:34.642-05:00  INFO 15672 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-05-16T15:52:35.385-05:00 DEBUG 15672 --- [           main] com.monserrat.security.JwtFilter         : Filter 'jwtFilter' configured for use
-2026-05-16T15:52:36.249-05:00  WARN 15672 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-05-16T15:52:36.813-05:00  INFO 15672 --- [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@2b69ff13, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@7136ad9a, org.springframework.security.web.context.SecurityContextHolderFilter@77d42ed7, org.springframework.security.web.header.HeaderWriterFilter@53570fff, org.springframework.web.filter.CorsFilter@4fb42efa, org.springframework.security.web.authentication.logout.LogoutFilter@44cab872, com.monserrat.security.JwtFilter@642d971f, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@2d398cfb, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@23307c6c, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@35599228, org.springframework.security.web.session.SessionManagementFilter@679886ad, org.springframework.security.web.access.ExceptionTranslationFilter@53202b06, org.springframework.security.web.access.intercept.AuthorizationFilter@5d10e2b6]
-2026-05-16T15:52:37.379-05:00  INFO 15672 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
-2026-05-16T15:52:37.394-05:00  INFO 15672 --- [           main] c.m.m.MonserratBackendApplication        : Started MonserratBackendApplication in 10.176 seconds (process running for 10.844)
-Hibernate: 
-    select
-        a1_0.id,
-        a1_0.activo,
-        a1_0.nombre,
-        a1_0.password,
-        a1_0.rol,
-        a1_0.username 
-    from
-        admins a1_0 
-    where
-        a1_0.username=?
-2026-05-16T15:52:37.739-05:00  INFO 15672 --- [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-05-16T15:52:37.741-05:00  INFO 15672 --- [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-05-16T15:52:37.744-05:00  INFO 15672 --- [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
-Hibernate: 
-    select
-        a1_0.id,
-        a1_0.activo,
-        a1_0.nombre,
-        a1_0.password,
-        a1_0.rol,
-        a1_0.username 
-    from
-        admins a1_0 
-    where
-        a1_0.id=?
-Hibernate: 
-    insert 
-    into
-        chatbot_conversaciones
-        (canal, creado_en, estado, nombre_visitante, telefono) 
-    values
-        (?, ?, ?, ?, ?)
-Hibernate: 
-    update
-        admins 
-    set
-        activo=?,
-        nombre=?,
-        password=?,
-        rol=?,
-        username=? 
-    where
-        id=?
-2026-05-16T15:52:37.913-05:00  INFO 15672 --- [           main] com.monserrat.config.DataInitializer     : Admin sincronizado: username=admin / password=monserrat2024
-Hibernate: 
-    select
-        count(*) 
-    from
-        institution i1_0
-Hibernate: 
-    select
-        count(*) 
-    from
-        ingresantes i1_0
-Hibernate: 
-    select
-        count(*) 
-    from
-        videos v1_0
-Hibernate: 
-    select
-        count(*) 
-    from
-        redes_sociales rs1_0
-Hibernate: 
-    select
-        count(*) 
-    from
-        chatbot_faqs cf1_0
-2026-05-16T15:52:38.326-05:00  INFO 15672 --- [           main] com.monserrat.config.DataInitializer     : DataInitializer completado - I.E.P. Nuestra Senora de Monserrat
-Hibernate: 
-    insert 
-    into
-        chatbot_conversaciones
-        (canal, creado_en, estado, nombre_visitante, telefono) 
-    values
-        (?, ?, ?, ?, ?)
-Hibernate: 
-    insert 
-    into
-        chatbot_conversaciones
-        (canal, creado_en, estado, nombre_visitante, telefono) 
-    values
-        (?, ?, ?, ?, ?)
-Hibernate: 
-    select
-        cc1_0.id,
-        cc1_0.canal,
-        cc1_0.creado_en,
-        cc1_0.estado,
-        cc1_0.nombre_visitante,
-        cc1_0.telefono 
-    from
-        chatbot_conversaciones cc1_0 
-    where
-        cc1_0.id=?
-Hibernate: 
-    insert 
-    into
-        chatbot_mensajes
-        (confianza, conversacion_id, creado_en, emisor, intencion, mensaje) 
-    values
-        (?, ?, ?, ?, ?, ?)
-Hibernate: 
-    select
-        i1_0.id,
-        i1_0.anio_fundacion,
-        i1_0.ciudad,
-        i1_0.descripcion,
-        i1_0.direccion,
-        i1_0.distrito,
-        i1_0.email,
-        i1_0.horario_atencion,
-        i1_0.logo_url,
-        i1_0.mision,
-        i1_0.niveles,
-        i1_0.nombre,
-        i1_0.telefono,
-        i1_0.tipo,
-        i1_0.vision 
-    from
-        institution i1_0
-Hibernate: 
-    select
-        i1_0.id,
-        i1_0.activo,
-        i1_0.anio,
-        i1_0.carrera,
-        i1_0.foto_url,
-        i1_0.nombre,
-        i1_0.tipo_seleccion,
-        i1_0.universidad,
-        i1_0.universidad_siglas 
-    from
-        ingresantes i1_0 
-    where
-        i1_0.activo
-Hibernate: 
-    select
-        v1_0.id,
-        v1_0.activo,
-        v1_0.creado_en,
-        v1_0.descripcion,
-        v1_0.orden,
-        v1_0.tag,
-        v1_0.tag_color,
-        v1_0.titulo,
-        v1_0.youtube_id 
-    from
-        videos v1_0 
-    where
-        v1_0.activo 
-    order by
-        v1_0.orden
-Hibernate: 
-    select
-        rs1_0.id,
-        rs1_0.activo,
-        rs1_0.icono,
-        rs1_0.nombre,
-        rs1_0.orden,
-        rs1_0.url 
-    from
-        redes_sociales rs1_0 
-    where
-        rs1_0.activo 
-    order by
-        rs1_0.orden
-Hibernate: 
-    select
-        cf1_0.id,
-        cf1_0.activo,
-        cf1_0.categoria,
-        cf1_0.orden,
-        cf1_0.pregunta,
-        cf1_0.respuesta 
-    from
-        chatbot_faqs cf1_0 
-    where
-        cf1_0.activo 
-    order by
-        cf1_0.orden
-Hibernate: 
-    insert 
-    into
-        chatbot_mensajes
-        (confianza, conversacion_id, creado_en, emisor, intencion, mensaje) 
-    values
-        (?, ?, ?, ?, ?, ?)
-Hibernate: 
-    insert 
-    into
-        chatbot_conversaciones
-        (canal, creado_en, estado, nombre_visitante, telefono) 
-    values
-        (?, ?, ?, ?, ?)
-Hibernate: 
-    select
-        cc1_0.id,
-        cc1_0.canal,
-        cc1_0.creado_en,
-        cc1_0.estado,
-        cc1_0.nombre_visitante,
-        cc1_0.telefono 
-    from
-        chatbot_conversaciones cc1_0 
-    where
-        cc1_0.id=?
-Hibernate: 
-    insert 
-    into
-        chatbot_mensajes
-        (confianza, conversacion_id, creado_en, emisor, intencion, mensaje) 
-    values
-        (?, ?, ?, ?, ?, ?)
-Hibernate: 
-    select
-        i1_0.id,
-        i1_0.anio_fundacion,
-        i1_0.ciudad,
-        i1_0.descripcion,
-        i1_0.direccion,
-        i1_0.distrito,
-        i1_0.email,
-        i1_0.horario_atencion,
-        i1_0.logo_url,
-        i1_0.mision,
-        i1_0.niveles,
-        i1_0.nombre,
-        i1_0.telefono,
-        i1_0.tipo,
-        i1_0.vision 
-    from
-        institution i1_0
-Hibernate: 
-    select
-        i1_0.id,
-        i1_0.activo,
-        i1_0.anio,
-        i1_0.carrera,
-        i1_0.foto_url,
-        i1_0.nombre,
-        i1_0.tipo_seleccion,
-        i1_0.universidad,
-        i1_0.universidad_siglas 
-    from
-        ingresantes i1_0 
-    where
-        i1_0.activo
-Hibernate: 
-    select
-        v1_0.id,
-        v1_0.activo,
-        v1_0.creado_en,
-        v1_0.descripcion,
-        v1_0.orden,
-        v1_0.tag,
-        v1_0.tag_color,
-        v1_0.titulo,
-        v1_0.youtube_id 
-    from
-        videos v1_0 
-    where
-        v1_0.activo 
-    order by
-        v1_0.orden
-Hibernate: 
-    select
-        rs1_0.id,
-        rs1_0.activo,
-        rs1_0.icono,
-        rs1_0.nombre,
-        rs1_0.orden,
-        rs1_0.url 
-    from
-        redes_sociales rs1_0 
-    where
-        rs1_0.activo 
-    order by
-        rs1_0.orden
-Hibernate: 
-    select
-        cf1_0.id,
-        cf1_0.activo,
-        cf1_0.categoria,
-        cf1_0.orden,
-        cf1_0.pregunta,
-        cf1_0.respuesta 
-    from
-        chatbot_faqs cf1_0 
-    where
-        cf1_0.activo 
-    order by
-        cf1_0.orden
-Hibernate: 
-    insert 
-    into
-        chatbot_mensajes
-        (confianza, conversacion_id, creado_en, emisor, intencion, mensaje) 
-    values
-        (?, ?, ?, ?, ?, ?)
-[INFO] ------------------------------------------------------------------------
-[INFO] BUILD FAILURE
-[INFO] ------------------------------------------------------------------------
-[INFO] Total time:  09:11 min
-[INFO] Finished at: 2026-05-16T16:01:31-05:00
-[INFO] ------------------------------------------------------------------------
-[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.2.3:run (default-cli) on project monserrat-backend: Process terminated with exit code: 1 -> [Help 1]
-[ERROR] 
-[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
-[ERROR] Re-run Maven using the -X switch to enable full debug logging.
-[ERROR] 
-[ERROR] For more information about the errors and possible solutions, please read the following articles:
-[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+2026-06-20T16:04:46.390-05:00  INFO 5252 --- [           main] c.m.m.MonserratBackendApplication        : Starting MonserratBackendApplication using Java 21.0.10 with PID 5252 (C:\tesis-montserrat\monserrat-backend\target\classes started by zelvi in C:\tesis-montserrat\monserrat-backend)
+2026-06-20T16:04:46.395-05:00  INFO 5252 --- [           main] c.m.m.MonserratBackendApplication        : No active profile set, falling back to 1 default profile: "default"
+2026-06-20T16:04:48.556-05:00  INFO 5252 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-20T16:04:49.135-05:00  INFO 5252 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 514 ms. Found 13 JPA repository interfaces.
+2026-06-20T16:04:52.449-05:00  INFO 5252 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-06-20T16:04:52.489-05:00  INFO 5252 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-06-20T16:04:52.490-05:00  INFO 5252 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.19]
+2026-06-20T16:04:52.707-05:00  INFO 5252 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-06-20T16:04:52.710-05:00  INFO 5252 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 6122 ms
+2026-06-20T16:04:53.239-05:00  INFO 5252 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-06-20T16:04:53.530-05:00  INFO 5252 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.4.Final
+2026-06-20T16:04:53.693-05:00  INFO 5252 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-06-20T16:04:54.726-05:00  INFO 5252 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-20T16:04:54.848-05:00  INFO 5252 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-06-20T16:04:55.579-05:00  INFO 5252 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@72a7aa4f
+2026-06-20T16:04:55.583-05:00  INFO 5252 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-06-20T16:04:55.743-05:00  WARN 5252 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-06-20T16:05:02.453-05:00  INFO 5252 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-20T16:05:03.044-05:00  INFO 5252 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-20T16:05:07.195-05:00  INFO 5252 --- [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@22ea09b7, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@13f255ed, org.springframework.security.web.context.SecurityContextHolderFilter@37f75ebf, org.springframework.security.web.header.HeaderWriterFilter@e9947af, org.springframework.web.filter.CorsFilter@36a7586f, org.springframework.security.web.authentication.logout.LogoutFilter@39f5eba4, com.monserrat.security.JwtFilter@3da6950f, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@23d0f6be, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@48cebb78, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@4265cbed, org.springframework.security.web.session.SessionManagementFilter@45e49d3d, org.springframework.security.web.access.ExceptionTranslationFilter@490f2fad, org.springframework.security.web.access.intercept.AuthorizationFilter@3a641f6]
+2026-06-20T16:05:08.008-05:00  INFO 5252 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2026-06-20T16:05:08.028-05:00  INFO 5252 --- [           main] c.m.m.MonserratBackendApplication        : Started MonserratBackendApplication in 22.946 seconds (process running for 24.734)
+2026-06-20T16:05:08.835-05:00  INFO 5252 --- [           main] com.monserrat.config.DataInitializer     : Admin sincronizado para adminmontserrat
+2026-06-20T16:05:09.607-05:00  INFO 5252 --- [           main] com.monserrat.config.DataInitializer     : DataInitializer completado - I.E.P. Nuestra Senora de Monserrat

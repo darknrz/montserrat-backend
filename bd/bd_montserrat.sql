@@ -76,6 +76,77 @@ CREATE TABLE IF NOT EXISTS redes_sociales (
     orden  INTEGER      NOT NULL DEFAULT 0
 );
 
+-- Usuarios academicos
+CREATE TABLE IF NOT EXISTS usuarios_academicos (
+    id                       BIGSERIAL    PRIMARY KEY,
+    dni                      VARCHAR(20)  NOT NULL UNIQUE,
+    codigo                   VARCHAR(30) UNIQUE,
+    password                 VARCHAR(255) NOT NULL,
+    nombre                   VARCHAR(150) NOT NULL,
+    nombres                  VARCHAR(100),
+    apellidos                VARCHAR(120),
+    correo                   VARCHAR(120),
+    direccion                VARCHAR(250),
+    fecha_nacimiento         DATE,
+    rol                      VARCHAR(20)  NOT NULL,
+    activo                   BOOLEAN      NOT NULL DEFAULT TRUE,
+    estado                   VARCHAR(20)  NOT NULL DEFAULT 'ACTIVO',
+    debe_cambiar_contrasena  BOOLEAN      NOT NULL DEFAULT TRUE,
+    telefono                 VARCHAR(30),
+    foto_url                 VARCHAR(300),
+    nivel_educativo          VARCHAR(20),
+    grado                    VARCHAR(50),
+    seccion                  VARCHAR(50),
+    materia                  VARCHAR(120),
+    especialidad             VARCHAR(120),
+    estado_matricula         VARCHAR(20)  DEFAULT 'MATRICULADO',
+    pension_pagada           BOOLEAN      NOT NULL DEFAULT FALSE,
+    pension_observacion      VARCHAR(200)
+);
+
+-- Asignaciones academicas
+CREATE TABLE IF NOT EXISTS asignaciones_academicas (
+    id         BIGSERIAL    PRIMARY KEY,
+    docente_id BIGINT       NOT NULL REFERENCES usuarios_academicos (id),
+    alumno_id  BIGINT       NOT NULL REFERENCES usuarios_academicos (id),
+    curso      VARCHAR(50)  NOT NULL,
+    nivel_educativo VARCHAR(20) NOT NULL,
+    grado      VARCHAR(50)  NOT NULL,
+    seccion    VARCHAR(10)  NOT NULL,
+    activo     BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_asig_docente ON asignaciones_academicas (docente_id);
+CREATE INDEX IF NOT EXISTS idx_asig_alumno ON asignaciones_academicas (alumno_id);
+CREATE INDEX IF NOT EXISTS idx_asig_curso ON asignaciones_academicas (curso);
+
+-- Asistencias academicas
+CREATE TABLE IF NOT EXISTS asistencias_academicas (
+    id          BIGSERIAL    PRIMARY KEY,
+    alumno_id   BIGINT       NOT NULL REFERENCES usuarios_academicos (id),
+    docente_id  BIGINT       NOT NULL REFERENCES usuarios_academicos (id),
+    fecha       DATE         NOT NULL,
+    estado      VARCHAR(20)  NOT NULL,
+    observacion VARCHAR(300),
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+-- Notas academicas
+CREATE TABLE IF NOT EXISTS notas_academicas (
+    id          BIGSERIAL    PRIMARY KEY,
+    alumno_id   BIGINT       NOT NULL REFERENCES usuarios_academicos (id),
+    docente_id  BIGINT       NOT NULL REFERENCES usuarios_academicos (id),
+    curso       VARCHAR(50) NOT NULL,
+    periodo     VARCHAR(60)  NOT NULL,
+    tipo_evaluacion VARCHAR(30) NOT NULL DEFAULT 'EXAMEN',
+    valor       DOUBLE PRECISION NOT NULL,
+    observacion VARCHAR(300),
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
 -- ============================================================
 -- DATOS INICIALES
 -- ============================================================

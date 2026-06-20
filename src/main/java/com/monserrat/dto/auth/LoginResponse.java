@@ -12,7 +12,9 @@ import lombok.NoArgsConstructor;
 public class LoginResponse {
     private String token;
     private String tipo;
+    private Long userId;
     private String username;
     private String nombre;
     private String rol;
+    private Boolean debeCambiarContrasena;
 }

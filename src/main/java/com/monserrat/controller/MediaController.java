@@ -16,7 +16,7 @@ public class MediaController {
     private final CloudinaryService cloudinaryService;
 
     @PostMapping("/upload")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCENTE','ALUMNO')")
     public ResponseEntity<MediaUploadResponse> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam(defaultValue = "general") String folder) {
