@@ -7,6 +7,7 @@ import com.monserrat.entity.NivelEducativo;
 import com.monserrat.entity.RolUsuario;
 import com.monserrat.entity.Seccion;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -23,6 +24,7 @@ public class CreateUsuarioAcademicoRequest {
 
     private String nombres;
     private String apellidos;
+    @Email(message = "El correo no es valido")
     private String correo;
     private String direccion;
     private LocalDate fechaNacimiento;

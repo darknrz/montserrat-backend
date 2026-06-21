@@ -74,10 +74,8 @@ public class AcademicoService {
         if (RolUsuario.ADMIN.equals(rol)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El administrador se gestiona desde la tabla de administradores");
         }
-        if (usuarioRepository.existsByDni(request.getDni())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un usuario con ese DNI");
-        }
         validarDatosAcademicos(rol, request.getNivelEducativo(), request.getGrado());
+        validarDatosUnicos(null, request.getDni(), request.getCodigo(), request.getCorreo());
 
         UsuarioAcademico usuario = UsuarioAcademico.builder()
                 .dni(request.getDni())
@@ -114,10 +112,34 @@ public class AcademicoService {
         return toUsuarioDto(usuarioRepository.save(usuario));
     }
 
-    public void desactivarUsuario(Long id) {
+    @Transactional
+    public void desactivarUsuario(Long id, boolean forceDelete) {
         UsuarioAcademico usuario = buscarPorId(id);
-        usuario.setActivo(false);
-        usuarioRepository.save(usuario);
+        String dependencies = construirDependenciasEliminacion(usuario);
+        if (!dependencies.isBlank()) {
+            if (!forceDelete) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, dependencies);
+            }
+            eliminarConDependencias(usuario);
+            return;
+        }
+        usuarioRepository.delete(usuario);
+    }
+
+    private void eliminarConDependencias(UsuarioAcademico usuario) {
+        String dni = usuario.getDni();
+        if (RolUsuario.DOCENTE.equals(usuario.getRol())) {
+            asignacionRepository.deleteByDocente_Dni(dni);
+            asistenciaRepository.deleteByDocente_Dni(dni);
+            notaRepository.deleteByDocente_Dni(dni);
+        }
+        if (RolUsuario.ALUMNO.equals(usuario.getRol())) {
+            asignacionRepository.deleteByAlumno_Dni(dni);
+            asistenciaRepository.deleteByAlumno_Dni(dni);
+            notaRepository.deleteByAlumno_Dni(dni);
+            pensionMensualRepository.deleteByAlumno_Dni(dni);
+        }
+        usuarioRepository.delete(usuario);
     }
 
     public PerfilAcademicoDTO obtenerPerfil(String dni) {
@@ -440,6 +462,12 @@ public class AcademicoService {
     }
 
     private void aplicarPerfil(UsuarioAcademico usuario, UpdatePerfilAcademicoRequest request, boolean adminEdita) {
+        if (adminEdita || RolUsuario.ALUMNO.equals(usuario.getRol())) {
+            validarDatosUnicos(usuario.getId(), usuario.getDni(), request.getCodigo(), request.getCorreo());
+        } else if (RolUsuario.DOCENTE.equals(usuario.getRol())) {
+            validarDatosUnicos(usuario.getId(), usuario.getDni(), request.getCodigo(), request.getCorreo());
+        }
+
         usuario.setNombre(request.getNombre());
         usuario.setNombres(request.getNombres());
         usuario.setApellidos(request.getApellidos());
@@ -470,6 +498,57 @@ public class AcademicoService {
             usuario.setPensionPagada(Boolean.TRUE.equals(request.getPensionPagada()));
             usuario.setPensionObservacion(request.getPensionObservacion());
         }
+    }
+
+    private void validarDatosUnicos(Long usuarioId, String dni, String codigo, String correo) {
+        String dniNormalizado = normalizarTexto(dni);
+        String codigoNormalizado = normalizarTexto(codigo);
+        String correoNormalizado = normalizarTexto(correo);
+
+        if (!dniNormalizado.isBlank() && (
+                usuarioId == null
+                        ? usuarioRepository.existsByDni(dniNormalizado)
+                        : usuarioRepository.existsByDniAndIdNot(dniNormalizado, usuarioId))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El DNI ya esta registrado");
+        }
+        if (!codigoNormalizado.isBlank() && (
+                usuarioId == null
+                        ? usuarioRepository.existsByCodigoIgnoreCase(codigoNormalizado)
+                        : usuarioRepository.existsByCodigoIgnoreCaseAndIdNot(codigoNormalizado, usuarioId))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El codigo ya esta registrado");
+        }
+        if (!correoNormalizado.isBlank() && (
+                usuarioId == null
+                        ? usuarioRepository.existsByCorreoIgnoreCase(correoNormalizado)
+                        : usuarioRepository.existsByCorreoIgnoreCaseAndIdNot(correoNormalizado, usuarioId))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya esta registrado");
+        }
+    }
+
+    private String construirDependenciasEliminacion(UsuarioAcademico usuario) {
+        List<String> dependencias = new ArrayList<>();
+        String dni = usuario.getDni();
+
+        long asignaciones = usuario.getRol() == RolUsuario.DOCENTE
+                ? asignacionRepository.findByDocente_Dni(dni).size()
+                : asignacionRepository.findByAlumno_Dni(dni).size();
+        long asistencias = asistenciaRepository.countByAlumno_Dni(dni) + asistenciaRepository.countByDocente_Dni(dni);
+        long notas = notaRepository.countByAlumno_Dni(dni) + notaRepository.countByDocente_Dni(dni);
+
+        if (asignaciones > 0) dependencias.add(asignaciones + " asignaciones");
+        if (asistencias > 0) dependencias.add(asistencias + " asistencias");
+        if (notas > 0) dependencias.add(notas + " notas");
+
+        if (RolUsuario.ALUMNO.equals(usuario.getRol())) {
+            long pensiones = pensionMensualRepository.countByAlumno_Dni(dni);
+            if (pensiones > 0) dependencias.add(pensiones + " pensiones");
+        }
+
+        if (dependencias.isEmpty()) {
+            return "";
+        }
+
+        return "No se puede eliminar porque tiene datos vinculados: " + String.join(", ", dependencias) + ".";
     }
 
     private void validarDatosAcademicos(RolUsuario rol, NivelEducativo nivelEducativo, Grado grado) {

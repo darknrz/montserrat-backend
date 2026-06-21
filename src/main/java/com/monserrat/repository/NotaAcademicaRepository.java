@@ -9,4 +9,8 @@ public interface NotaAcademicaRepository extends JpaRepository<NotaAcademica, Lo
     List<NotaAcademica> findByAlumno_DniOrderByPeriodoDescCreatedAtDesc(String dni);
     List<NotaAcademica> findByDocente_DniOrderByUpdatedAtDesc(String dni);
     List<NotaAcademica> findByAlumno_DniAndDocente_DniOrderByPeriodoDescCreatedAtDesc(String alumnoDni, String docenteDni);
+    long countByAlumno_Dni(String dni);
+    long countByDocente_Dni(String dni);
+    long deleteByAlumno_Dni(String dni);
+    long deleteByDocente_Dni(String dni);
 }

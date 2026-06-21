@@ -9,4 +9,8 @@ public interface AsistenciaAcademicaRepository extends JpaRepository<AsistenciaA
     List<AsistenciaAcademica> findByAlumno_DniOrderByFechaDesc(String dni);
     List<AsistenciaAcademica> findByDocente_DniOrderByFechaDesc(String dni);
     List<AsistenciaAcademica> findByAlumno_DniAndDocente_DniOrderByFechaDesc(String alumnoDni, String docenteDni);
+    long countByAlumno_Dni(String dni);
+    long countByDocente_Dni(String dni);
+    long deleteByAlumno_Dni(String dni);
+    long deleteByDocente_Dni(String dni);
 }

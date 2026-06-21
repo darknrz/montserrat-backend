@@ -53,8 +53,8 @@ public class AcademicoController {
 
     @DeleteMapping("/usuarios/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> desactivarUsuario(@PathVariable Long id) {
-        academicoService.desactivarUsuario(id);
+    public ResponseEntity<Void> desactivarUsuario(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean force) {
+        academicoService.desactivarUsuario(id, force);
         return ResponseEntity.noContent().build();
     }
 

@@ -16,7 +16,15 @@ public interface AsignacionAcademicaRepository extends JpaRepository<AsignacionA
     List<AsignacionAcademica> findByDocente_DniAndActivoTrue(String dni);
 
     @EntityGraph(attributePaths = {"docente", "alumno"})
+    List<AsignacionAcademica> findByDocente_Dni(String dni);
+    long deleteByDocente_Dni(String dni);
+
+    @EntityGraph(attributePaths = {"docente", "alumno"})
     List<AsignacionAcademica> findByAlumno_DniAndActivoTrue(String dni);
+
+    @EntityGraph(attributePaths = {"docente", "alumno"})
+    List<AsignacionAcademica> findByAlumno_Dni(String dni);
+    long deleteByAlumno_Dni(String dni);
 
     @EntityGraph(attributePaths = {"docente", "alumno"})
     List<AsignacionAcademica> findByActivoTrue();

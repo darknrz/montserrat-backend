@@ -13,6 +13,11 @@ import java.util.Optional;
 public interface UsuarioAcademicoRepository extends JpaRepository<UsuarioAcademico, Long> {
     Optional<UsuarioAcademico> findByDni(String dni);
     boolean existsByDni(String dni);
+    boolean existsByDniAndIdNot(String dni, Long id);
+    boolean existsByCodigoIgnoreCase(String codigo);
+    boolean existsByCodigoIgnoreCaseAndIdNot(String codigo, Long id);
+    boolean existsByCorreoIgnoreCase(String correo);
+    boolean existsByCorreoIgnoreCaseAndIdNot(String correo, Long id);
     List<UsuarioAcademico> findByRolAndActivoTrue(RolUsuario rol);
     List<UsuarioAcademico> findByRolAndNivelEducativoAndGradoAndSeccionAndActivoTrue(
             RolUsuario rol,

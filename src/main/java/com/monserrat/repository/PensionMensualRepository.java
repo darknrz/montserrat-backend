@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface PensionMensualRepository extends JpaRepository<PensionMensual, Long> {
     List<PensionMensual> findByAnio(Integer anio);
     Optional<PensionMensual> findByAlumno_DniAndAnioAndMes(String alumnoDni, Integer anio, Integer mes);
+    long countByAlumno_Dni(String dni);
+    long deleteByAlumno_Dni(String dni);
 }
