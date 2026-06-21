@@ -19,11 +19,24 @@ import java.util.List;
 public class AcademicoController {
 
     private final AcademicoService academicoService;
+    private final com.monserrat.service.AcademicoConfigService academicoConfigService;
 
     @GetMapping("/usuarios")
     @PreAuthorize("hasRole('ADMIN')")
     public List<UsuarioAcademicoDTO> listarUsuarios() {
         return academicoService.listarUsuarios();
+    }
+
+    @GetMapping("/configuracion")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AcademicoConfigDTO obtenerConfiguracion() {
+        return academicoConfigService.obtener();
+    }
+
+    @PutMapping("/configuracion")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AcademicoConfigDTO guardarConfiguracion(@RequestBody AcademicoConfigDTO request) {
+        return academicoConfigService.guardar(request);
     }
 
     @PostMapping("/usuarios")
@@ -68,6 +81,18 @@ public class AcademicoController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<UsuarioAcademicoDTO> listarAlumnos() {
         return academicoService.listarAlumnos();
+    }
+
+    @GetMapping("/pensiones")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<PensionMensualDTO> listarPensiones(@RequestParam(required = false) Integer anio) {
+        return academicoService.listarPensionesMensuales(anio);
+    }
+
+    @PutMapping("/pensiones")
+    @PreAuthorize("hasRole('ADMIN')")
+    public PensionMensualDTO actualizarPension(@Valid @RequestBody PensionMensualRequest request) {
+        return academicoService.actualizarPensionMensual(request);
     }
 
     @GetMapping("/docente/alumnos")

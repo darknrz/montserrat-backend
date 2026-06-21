@@ -10,11 +10,13 @@ import com.monserrat.entity.EstadoUsuario;
 import com.monserrat.entity.Grado;
 import com.monserrat.entity.NivelEducativo;
 import com.monserrat.entity.NotaAcademica;
+import com.monserrat.entity.PensionMensual;
 import com.monserrat.entity.RolUsuario;
 import com.monserrat.entity.UsuarioAcademico;
 import com.monserrat.repository.AsignacionAcademicaRepository;
 import com.monserrat.repository.AsistenciaAcademicaRepository;
 import com.monserrat.repository.NotaAcademicaRepository;
+import com.monserrat.repository.PensionMensualRepository;
 import com.monserrat.repository.UsuarioAcademicoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -40,6 +42,7 @@ public class AcademicoService {
     private final AsignacionAcademicaRepository asignacionRepository;
     private final AsistenciaAcademicaRepository asistenciaRepository;
     private final NotaAcademicaRepository notaRepository;
+    private final PensionMensualRepository pensionMensualRepository;
     private final PasswordEncoder passwordEncoder;
 
     public List<UsuarioAcademicoDTO> listarUsuarios() {
@@ -252,7 +255,7 @@ public class AcademicoService {
         validarAlumnoEnAula(alumno, request.getNivelEducativo(), request.getGrado(), request.getSeccion());
         validarDocenteCurso(docente, request.getNivelEducativo(), request.getCurso());
         if (NivelEducativo.PRIMARIA.equals(request.getNivelEducativo())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "En primaria asigna un tutor por aula desde la opcion de asignacion de aula");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "En primaria asigna el docente al salon completo desde la opcion de asignacion de aula");
         }
         if (asignacionRepository.existsByDocente_DniAndAlumno_DniAndCursoAndGradoAndSeccionAndActivoTrue(
                 docente.getDni(), alumno.getDni(), request.getCurso(), request.getGrado(), request.getSeccion())) {
@@ -276,6 +279,7 @@ public class AcademicoService {
         UsuarioAcademico docente = exigirRol(buscarPorDni(request.getDocenteDni()), RolUsuario.DOCENTE);
         validarDatosAcademicos(RolUsuario.ALUMNO, request.getNivelEducativo(), request.getGrado());
         validarDocenteCurso(docente, request.getNivelEducativo(), request.getCurso());
+        validarDocentePrimariaUnSoloSalon(docente, request);
 
         List<UsuarioAcademico> alumnos = usuarioRepository.findByRolAndNivelEducativoAndGradoAndSeccionAndActivoTrue(
                 RolUsuario.ALUMNO, request.getNivelEducativo(), request.getGrado(), request.getSeccion());
@@ -331,7 +335,7 @@ public class AcademicoService {
         validarAlumnoEnAula(alumno, request.getNivelEducativo(), request.getGrado(), request.getSeccion());
         validarDocenteCurso(docente, request.getNivelEducativo(), request.getCurso());
         if (NivelEducativo.PRIMARIA.equals(request.getNivelEducativo())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "En primaria asigna un tutor por aula desde la opcion de asignacion de aula");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "En primaria asigna el docente al salon completo desde la opcion de asignacion de aula");
         }
 
         asignacion.setDocente(docente);
@@ -362,6 +366,47 @@ public class AcademicoService {
                 .observacion(alumno.getPensionObservacion())
                 .actualizadoEn(LocalDateTime.now())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PensionMensualDTO> listarPensionesMensuales(Integer anio) {
+        int year = anio == null ? java.time.Year.now().getValue() : anio;
+        List<UsuarioAcademico> alumnos = usuarioRepository.findByRolAndActivoTrue(RolUsuario.ALUMNO).stream()
+                .sorted(Comparator
+                        .comparing((UsuarioAcademico alumno) -> alumno.getNivelEducativo() == null ? "" : alumno.getNivelEducativo().name())
+                        .thenComparing(alumno -> alumno.getGrado() == null ? "" : alumno.getGrado().name())
+                        .thenComparing(alumno -> alumno.getSeccion() == null ? "" : alumno.getSeccion().name())
+                        .thenComparing(UsuarioAcademico::getNombre, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        java.util.Map<String, PensionMensual> pagos = pensionMensualRepository.findByAnio(year).stream()
+                .collect(Collectors.toMap(
+                        pago -> pago.getAlumno().getDni() + "-" + pago.getMes(),
+                        pago -> pago,
+                        (left, right) -> left));
+        List<PensionMensualDTO> result = new ArrayList<>();
+        for (UsuarioAcademico alumno : alumnos) {
+            for (int mes = 1; mes <= 12; mes++) {
+                PensionMensual pago = pagos.get(alumno.getDni() + "-" + mes);
+                result.add(toPensionMensualDto(alumno, year, mes, pago));
+            }
+        }
+        return result;
+    }
+
+    @Transactional
+    public PensionMensualDTO actualizarPensionMensual(PensionMensualRequest request) {
+        UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
+        PensionMensual pago = pensionMensualRepository
+                .findByAlumno_DniAndAnioAndMes(alumno.getDni(), request.getAnio(), request.getMes())
+                .orElseGet(() -> PensionMensual.builder()
+                        .alumno(alumno)
+                        .anio(request.getAnio())
+                        .mes(request.getMes())
+                        .build());
+        pago.setPagada(Boolean.TRUE.equals(request.getPagada()));
+        pago.setObservacion(request.getObservacion());
+        PensionMensual saved = pensionMensualRepository.save(pago);
+        return toPensionMensualDto(alumno, request.getAnio(), request.getMes(), saved);
     }
 
     private UsuarioAcademico buscarPorId(Long id) {
@@ -470,6 +515,19 @@ public class AcademicoService {
         }
     }
 
+    private void validarDocentePrimariaUnSoloSalon(UsuarioAcademico docente, AsignacionAulaRequest request) {
+        if (!NivelEducativo.PRIMARIA.equals(request.getNivelEducativo())) {
+            return;
+        }
+        boolean tieneOtroSalon = asignacionRepository.findByDocente_DniAndActivoTrue(docente.getDni()).stream()
+                .anyMatch(asignacion -> NivelEducativo.PRIMARIA.equals(asignacion.getNivelEducativo())
+                        && (!Objects.equals(asignacion.getGrado(), request.getGrado())
+                        || !Objects.equals(asignacion.getSeccion(), request.getSeccion())));
+        if (tieneOtroSalon) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El docente de primaria ya esta asignado a otro salon activo");
+        }
+    }
+
     private UsuarioAcademicoDTO toUsuarioDto(UsuarioAcademico usuario) {
         return UsuarioAcademicoDTO.builder()
                 .id(usuario.getId())
@@ -494,6 +552,22 @@ public class AcademicoService {
                 .estadoMatricula(usuario.getEstadoMatricula())
                 .pensionPagada(usuario.getPensionPagada())
                 .pensionObservacion(usuario.getPensionObservacion())
+                .build();
+    }
+
+    private PensionMensualDTO toPensionMensualDto(UsuarioAcademico alumno, Integer anio, Integer mes, PensionMensual pago) {
+        return PensionMensualDTO.builder()
+                .alumnoDni(alumno.getDni())
+                .alumnoCodigo(alumno.getCodigo())
+                .alumnoNombre(alumno.getNombre())
+                .nivelEducativo(alumno.getNivelEducativo())
+                .grado(alumno.getGrado())
+                .seccion(alumno.getSeccion())
+                .anio(anio)
+                .mes(mes)
+                .pagada(pago != null && Boolean.TRUE.equals(pago.getPagada()))
+                .observacion(pago == null ? null : pago.getObservacion())
+                .actualizadoEn(pago == null ? null : pago.getUpdatedAt())
                 .build();
     }
 
