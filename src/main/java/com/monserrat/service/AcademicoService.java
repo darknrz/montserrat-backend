@@ -165,6 +165,7 @@ public class AcademicoService {
         usuarioRepository.save(usuario);
     }
 
+    @Transactional
     public AsistenciaAcademicaDTO registrarAsistencia(String docenteDni, AsistenciaAcademicaRequest request) {
         UsuarioAcademico docente = exigirRol(buscarPorDni(docenteDni), RolUsuario.DOCENTE);
         UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
@@ -188,6 +189,7 @@ public class AcademicoService {
                 .toList();
     }
 
+    @Transactional
     public NotaAcademicaDTO registrarNota(String docenteDni, NotaAcademicaRequest request) {
         UsuarioAcademico docente = exigirRol(buscarPorDni(docenteDni), RolUsuario.DOCENTE);
         UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
@@ -207,6 +209,7 @@ public class AcademicoService {
         return toNotaDto(notaRepository.save(nota));
     }
 
+    @Transactional
     public NotaAcademicaDTO actualizarNota(String docenteDni, Long id, NotaAcademicaRequest request) {
         NotaAcademica nota = notaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota no encontrada"));
