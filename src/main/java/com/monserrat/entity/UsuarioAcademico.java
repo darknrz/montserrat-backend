@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "usuarios_academicos", indexes = {
@@ -61,6 +62,16 @@ public class UsuarioAcademico {
     @Column(nullable = false)
     @Builder.Default
     private Boolean debeCambiarContrasena = true;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    private void ensureCreatedAt() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 
     @Column(length = 30)
     private String telefono;

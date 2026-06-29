@@ -28,7 +28,7 @@ public class AcademicoController {
     }
 
     @GetMapping("/configuracion")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ALUMNO', 'DOCENTE')")
     public AcademicoConfigDTO obtenerConfiguracion() {
         return academicoConfigService.obtener();
     }
@@ -141,6 +141,18 @@ public class AcademicoController {
     @PreAuthorize("hasRole('ALUMNO')")
     public PensionEstadoDTO obtenerPension(Authentication authentication) {
         return academicoService.obtenerPension(authentication.getName());
+    }
+
+    @GetMapping("/alumno/asistencias")
+    @PreAuthorize("hasRole('ALUMNO')")
+    public List<AsistenciaAcademicaDTO> listarAsistenciasAlumno(Authentication authentication) {
+        return academicoService.listarAsistenciasAlumno(authentication.getName());
+    }
+
+    @GetMapping("/alumno/pension/detalle")
+    @PreAuthorize("hasRole('ALUMNO')")
+    public List<PensionMensualDTO> listarPensionesAlumno(Authentication authentication, @RequestParam(required = false) Integer anio) {
+        return academicoService.listarPensionesAlumno(authentication.getName(), anio);
     }
 
     @GetMapping("/asignaciones")

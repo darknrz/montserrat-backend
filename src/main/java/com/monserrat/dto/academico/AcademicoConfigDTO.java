@@ -27,6 +27,8 @@ public class AcademicoConfigDTO {
     private List<CatalogItemDTO> seccionesSecundaria = new ArrayList<>();
     @Builder.Default
     private List<SalonItemDTO> salones = new ArrayList<>();
+    @Builder.Default
+    private Integer minAsistenciaPorcentaje = 70;
 
     @Data
     @Builder

@@ -24,6 +24,7 @@ public class PensionMensualDTO {
     private Integer anio;
     private Integer mes;
     private Boolean pagada;
+    private Boolean activa;
     private String observacion;
     private LocalDateTime actualizadoEn;
 }

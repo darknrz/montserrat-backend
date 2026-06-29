@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -99,6 +100,7 @@ public class AcademicoService {
                 .estadoMatricula(request.getEstadoMatricula() == null ? EstadoMatricula.MATRICULADO : request.getEstadoMatricula())
                 .pensionPagada(Boolean.TRUE.equals(request.getPensionPagada()))
                 .pensionObservacion(request.getPensionObservacion())
+                .createdAt(request.getCreatedAt())
                 .debeCambiarContrasena(true)
                 .activo(true)
                 .build();
@@ -240,6 +242,28 @@ public class AcademicoService {
         return notaRepository.findByAlumno_DniOrderByPeriodoDescCreatedAtDesc(alumnoDni).stream()
                 .map(this::toNotaDto)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AsistenciaAcademicaDTO> listarAsistenciasAlumno(String alumnoDni) {
+        return asistenciaRepository.findByAlumno_DniOrderByFechaDesc(alumnoDni).stream()
+                .map(this::toAsistenciaDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PensionMensualDTO> listarPensionesAlumno(String alumnoDni, Integer anio) {
+        int year = anio == null ? java.time.Year.now().getValue() : anio;
+        UsuarioAcademico alumno = exigirRol(buscarPorDni(alumnoDni), RolUsuario.ALUMNO);
+        List<PensionMensual> pagos = pensionMensualRepository.findByAlumno_DniAndAnio(alumno.getDni(), year);
+        java.util.Map<Integer, PensionMensual> pagosMap = pagos.stream()
+                .collect(Collectors.toMap(PensionMensual::getMes, p -> p, (a, b) -> a));
+        List<PensionMensualDTO> result = new ArrayList<>();
+        for (int mes = 1; mes <= 12; mes++) {
+            boolean activa = mesPensionActiva(alumno, year, mes);
+            result.add(toPensionMensualDto(alumno, year, mes, pagosMap.get(mes), activa));
+        }
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -411,8 +435,9 @@ public class AcademicoService {
         List<PensionMensualDTO> result = new ArrayList<>();
         for (UsuarioAcademico alumno : alumnos) {
             for (int mes = 1; mes <= 12; mes++) {
+                boolean activa = mesPensionActiva(alumno, year, mes);
                 PensionMensual pago = pagos.get(alumno.getDni() + "-" + mes);
-                result.add(toPensionMensualDto(alumno, year, mes, pago));
+                result.add(toPensionMensualDto(alumno, year, mes, pago, activa));
             }
         }
         return result;
@@ -421,6 +446,9 @@ public class AcademicoService {
     @Transactional
     public PensionMensualDTO actualizarPensionMensual(PensionMensualRequest request) {
         UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
+        if (!mesPensionActiva(alumno, request.getAnio(), request.getMes())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El mes de pension no aplica para el periodo registrado del alumno");
+        }
         PensionMensual pago = pensionMensualRepository
                 .findByAlumno_DniAndAnioAndMes(alumno.getDni(), request.getAnio(), request.getMes())
                 .orElseGet(() -> PensionMensual.builder()
@@ -480,7 +508,7 @@ public class AcademicoService {
         usuario.setTelefono(request.getTelefono());
         usuario.setFotoUrl(request.getFotoUrl());
 
-        if (adminEdita || RolUsuario.ALUMNO.equals(usuario.getRol())) {
+        if (adminEdita) {
             validarDatosAcademicos(usuario.getRol(), request.getNivelEducativo(), request.getGrado());
             usuario.setCodigo(request.getCodigo());
             usuario.setNivelEducativo(request.getNivelEducativo());
@@ -500,6 +528,9 @@ public class AcademicoService {
         if (adminEdita && RolUsuario.ALUMNO.equals(usuario.getRol())) {
             usuario.setPensionPagada(Boolean.TRUE.equals(request.getPensionPagada()));
             usuario.setPensionObservacion(request.getPensionObservacion());
+        }
+        if (request.getCreatedAt() != null) {
+            usuario.setCreatedAt(request.getCreatedAt());
         }
     }
 
@@ -610,6 +641,41 @@ public class AcademicoService {
         }
     }
 
+    private List<Integer> mesesDePensionParaAnio(UsuarioAcademico alumno, int anio) {
+        LocalDateTime createdAt = alumno.getCreatedAt();
+        if (createdAt == null) {
+            return java.util.stream.IntStream.rangeClosed(1, 12).boxed().toList();
+        }
+
+        return java.util.stream.IntStream.rangeClosed(1, 12)
+                .filter(mes -> esMesPensionActiva(createdAt, anio, mes, LocalDate.now()))
+                .boxed()
+                .toList();
+    }
+
+    static boolean esMesPensionActiva(LocalDateTime fechaInicioPeriodo, int anio, int mes, LocalDate fechaReferencia) {
+        if (fechaInicioPeriodo == null) {
+            return true;
+        }
+        LocalDate fechaInicio = fechaInicioPeriodo.toLocalDate();
+        LocalDate referencia = fechaReferencia == null ? LocalDate.now() : fechaReferencia;
+
+        if (anio < fechaInicio.getYear() || anio > referencia.getYear()) {
+            return false;
+        }
+        if (anio == fechaInicio.getYear() && mes < fechaInicio.getMonthValue()) {
+            return false;
+        }
+        if (anio == referencia.getYear() && mes > referencia.getMonthValue()) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean mesPensionActiva(UsuarioAcademico alumno, int anio, int mes) {
+        return esMesPensionActiva(alumno.getCreatedAt(), anio, mes, LocalDate.now());
+    }
+
     private UsuarioAcademicoDTO toUsuarioDto(UsuarioAcademico usuario) {
         return UsuarioAcademicoDTO.builder()
                 .id(usuario.getId())
@@ -634,10 +700,11 @@ public class AcademicoService {
                 .estadoMatricula(usuario.getEstadoMatricula())
                 .pensionPagada(usuario.getPensionPagada())
                 .pensionObservacion(usuario.getPensionObservacion())
+                .createdAt(usuario.getCreatedAt())
                 .build();
     }
 
-    private PensionMensualDTO toPensionMensualDto(UsuarioAcademico alumno, Integer anio, Integer mes, PensionMensual pago) {
+    private PensionMensualDTO toPensionMensualDto(UsuarioAcademico alumno, Integer anio, Integer mes, PensionMensual pago, boolean activa) {
         return PensionMensualDTO.builder()
                 .alumnoDni(alumno.getDni())
                 .alumnoCodigo(alumno.getCodigo())
@@ -648,6 +715,7 @@ public class AcademicoService {
                 .anio(anio)
                 .mes(mes)
                 .pagada(pago != null && Boolean.TRUE.equals(pago.getPagada()))
+                .activa(activa)
                 .observacion(pago == null ? null : pago.getObservacion())
                 .actualizadoEn(pago == null ? null : pago.getUpdatedAt())
                 .build();
@@ -678,6 +746,7 @@ public class AcademicoService {
                 .estadoMatricula(usuario.getEstadoMatricula())
                 .pensionPagada(usuario.getPensionPagada())
                 .pensionObservacion(usuario.getPensionObservacion())
+                .createdAt(usuario.getCreatedAt())
                 .build();
     }
 

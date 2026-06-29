@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Email;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class CreateUsuarioAcademicoRequest {
@@ -41,4 +42,5 @@ public class CreateUsuarioAcademicoRequest {
     private EstadoMatricula estadoMatricula;
     private Boolean pensionPagada;
     private String pensionObservacion;
+    private LocalDateTime createdAt;
 }

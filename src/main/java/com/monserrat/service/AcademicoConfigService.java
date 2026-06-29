@@ -41,6 +41,16 @@ public class AcademicoConfigService {
         addCatalogos(catalogos, "SECCION", "SECUNDARIA", request.getSeccionesSecundaria());
         catalogoRepository.saveAll(catalogos);
 
+        Integer minPct = request.getMinAsistenciaPorcentaje() != null ? request.getMinAsistenciaPorcentaje() : 70;
+        catalogoRepository.save(CatalogoAcademico.builder()
+                .tipo("ASISTENCIA")
+                .nivel("GLOBAL")
+                .codigo("MIN_PORCENTAJE")
+                .nombre(minPct.toString())
+                .activo(true)
+                .orden(999)
+                .build());
+
         List<SalonAcademico> salones = new ArrayList<>();
         List<AcademicoConfigDTO.SalonItemDTO> salonItems = request.getSalones() == null ? List.of() : request.getSalones();
         for (int i = 0; i < salonItems.size(); i++) {
@@ -74,6 +84,14 @@ public class AcademicoConfigService {
     }
 
     private void addCatalog(AcademicoConfigDTO dto, CatalogoAcademico item) {
+        if ("ASISTENCIA".equals(item.getTipo()) && "MIN_PORCENTAJE".equals(item.getCodigo())) {
+            try {
+                dto.setMinAsistenciaPorcentaje(Integer.parseInt(item.getNombre()));
+            } catch (NumberFormatException e) {
+                dto.setMinAsistenciaPorcentaje(70);
+            }
+            return;
+        }
         AcademicoConfigDTO.CatalogItemDTO catalogItem = AcademicoConfigDTO.CatalogItemDTO.builder()
                 .id(item.getCodigo())
                 .label(item.getNombre())
