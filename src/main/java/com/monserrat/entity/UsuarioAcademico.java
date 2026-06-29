@@ -40,6 +40,7 @@ public class UsuarioAcademico {
 
     @Column(length = 120)
     private String correo;
+    
 
     @Column(length = 250)
     private String direccion;
@@ -65,6 +66,9 @@ public class UsuarioAcademico {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "inicio_periodo")
+    private LocalDateTime inicioPeriodo;
 
     @PrePersist
     private void ensureCreatedAt() {

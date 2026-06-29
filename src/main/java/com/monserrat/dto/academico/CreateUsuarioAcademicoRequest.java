@@ -43,4 +43,5 @@ public class CreateUsuarioAcademicoRequest {
     private Boolean pensionPagada;
     private String pensionObservacion;
     private LocalDateTime createdAt;
+    private LocalDateTime inicioPeriodo;
 }
