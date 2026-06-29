@@ -29,6 +29,8 @@ public class AcademicoConfigDTO {
     private List<SalonItemDTO> salones = new ArrayList<>();
     @Builder.Default
     private Integer minAsistenciaPorcentaje = 70;
+    @Builder.Default
+    private String ingresantesModelo = "card-grid";
 
     @Data
     @Builder

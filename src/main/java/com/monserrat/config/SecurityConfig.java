@@ -22,7 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(jsr250Enabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -43,7 +43,9 @@ public class SecurityConfig {
                                 "/api/institution",
                                 "/api/ingresantes",
                                 "/api/ingresantes/**",
-                        "/api/videos",
+                                "/api/anuncios",
+                                "/api/anuncios/**",
+                                "/api/videos",
                                 "/api/videos/**",
                                 "/api/redes-sociales"
                         ).permitAll()

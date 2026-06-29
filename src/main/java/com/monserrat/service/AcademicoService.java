@@ -768,6 +768,7 @@ public class AcademicoService {
                 .pensionPagada(usuario.getPensionPagada())
                 .pensionObservacion(usuario.getPensionObservacion())
                 .createdAt(usuario.getCreatedAt())
+                .inicioPeriodo(usuario.getInicioPeriodo())
                 .build();
     }
 

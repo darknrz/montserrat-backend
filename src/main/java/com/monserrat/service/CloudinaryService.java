@@ -18,6 +18,7 @@ public class CloudinaryService {
 
     private static final long MAX_IMAGE_BYTES = 10L * 1024 * 1024;
     private static final long MAX_VIDEO_BYTES = 100L * 1024 * 1024;
+    private static final long MAX_RAW_BYTES = 50L * 1024 * 1024;
 
     private final Cloudinary cloudinary;
 
@@ -102,7 +103,11 @@ public class CloudinaryService {
     }
 
     private void validateFileSize(MultipartFile file, String resourceType) {
-        long maxBytes = "video".equals(resourceType) ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+        long maxBytes = switch (resourceType) {
+            case "video" -> MAX_VIDEO_BYTES;
+            case "raw" -> MAX_RAW_BYTES;
+            default -> MAX_IMAGE_BYTES;
+        };
         if (file.getSize() > maxBytes) {
             throw new IllegalArgumentException("El archivo excede el tamano permitido para " + resourceType + ".");
         }
@@ -116,7 +121,10 @@ public class CloudinaryService {
         if (contentType != null && contentType.startsWith("image/")) {
             return "image";
         }
-        throw new IllegalArgumentException("Solo se permiten imagenes y videos.");
+        if (contentType != null && contentType.startsWith("application/")) {
+            return "raw";
+        }
+        throw new IllegalArgumentException("Solo se permiten imagenes, videos o documentos.");
     }
 
     private String buildFolder(String targetFolder) {
@@ -145,7 +153,9 @@ public class CloudinaryService {
     }
 
     private String normalizeResourceType(String resourceType) {
-        return "video".equalsIgnoreCase(resourceType) ? "video" : "image";
+        if ("video".equalsIgnoreCase(resourceType)) return "video";
+        if ("raw".equalsIgnoreCase(resourceType)) return "raw";
+        return "image";
     }
 
     private String stringValue(Object value) {

@@ -51,6 +51,16 @@ public class AcademicoConfigService {
                 .orden(999)
                 .build());
 
+        String modelo = request.getIngresantesModelo() == null ? "card-grid" : request.getIngresantesModelo();
+        catalogoRepository.save(CatalogoAcademico.builder()
+            .tipo("INGRESANTES")
+            .nivel("GLOBAL")
+            .codigo("MODEL")
+            .nombre(modelo)
+            .activo(true)
+            .orden(998)
+            .build());
+
         List<SalonAcademico> salones = new ArrayList<>();
         List<AcademicoConfigDTO.SalonItemDTO> salonItems = request.getSalones() == null ? List.of() : request.getSalones();
         for (int i = 0; i < salonItems.size(); i++) {
@@ -90,6 +100,10 @@ public class AcademicoConfigService {
             } catch (NumberFormatException e) {
                 dto.setMinAsistenciaPorcentaje(70);
             }
+            return;
+        }
+        if ("INGRESANTES".equals(item.getTipo()) && "MODEL".equals(item.getCodigo())) {
+            dto.setIngresantesModelo(item.getNombre());
             return;
         }
         AcademicoConfigDTO.CatalogItemDTO catalogItem = AcademicoConfigDTO.CatalogItemDTO.builder()
