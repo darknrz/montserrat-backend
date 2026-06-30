@@ -2,6 +2,7 @@ package com.monserrat.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -37,6 +38,15 @@ public class Anuncio {
     @Column(nullable = true, length = 100)
     private String attachmentMimeType;
 
+    @Column(nullable = true, length = 500)
+    private String imageUrl;
+
+    @Column(nullable = true, length = 500)
+    private String imagePublicId;
+
+    @Column(nullable = true, length = 100)
+    private String imageMimeType;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean mostrarEnPopup = true;
@@ -52,4 +62,7 @@ public class Anuncio {
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime creadoEn = LocalDateTime.now();
+
+    @Column(nullable = true)
+    private LocalDate expiresAt;
 }

@@ -15,7 +15,11 @@ public class AnuncioDTO {
     private String attachmentPublicId;
     private String attachmentResourceType;
     private String attachmentMimeType;
+    private String imageUrl;
+    private String imagePublicId;
+    private String imageMimeType;
     private Boolean mostrarEnPopup;
     private Boolean activo;
     private Integer orden;
+    private String expiresAt;
 }

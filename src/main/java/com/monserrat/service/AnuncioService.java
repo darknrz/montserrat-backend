@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -17,7 +18,7 @@ public class AnuncioService {
     private final AnuncioRepository anuncioRepository;
 
     public List<AnuncioDTO> getAllActive() {
-        return anuncioRepository.findByActivoTrueOrderByOrdenAsc().stream().map(this::toDTO).toList();
+        return anuncioRepository.findActiveValidOrderByOrdenAsc().stream().map(this::toDTO).toList();
     }
 
     public AnuncioDTO getById(Long id) {
@@ -34,9 +35,13 @@ public class AnuncioService {
                 .attachmentPublicId(dto.getAttachmentPublicId())
                 .attachmentResourceType(dto.getAttachmentResourceType())
                 .attachmentMimeType(dto.getAttachmentMimeType())
+                .imageUrl(dto.getImageUrl())
+                .imagePublicId(dto.getImagePublicId())
+                .imageMimeType(dto.getImageMimeType())
                 .mostrarEnPopup(dto.getMostrarEnPopup() != null ? dto.getMostrarEnPopup() : true)
                 .activo(dto.getActivo() != null ? dto.getActivo() : true)
                 .orden(dto.getOrden() != null ? dto.getOrden() : 0)
+                .expiresAt(dto.getExpiresAt() != null && !dto.getExpiresAt().trim().isEmpty() ? LocalDate.parse(dto.getExpiresAt()) : null)
                 .build();
         return toDTO(anuncioRepository.save(anuncio));
     }
@@ -51,6 +56,10 @@ public class AnuncioService {
         anuncio.setAttachmentPublicId(dto.getAttachmentPublicId());
         anuncio.setAttachmentResourceType(dto.getAttachmentResourceType());
         anuncio.setAttachmentMimeType(dto.getAttachmentMimeType());
+        anuncio.setImageUrl(dto.getImageUrl());
+        anuncio.setImagePublicId(dto.getImagePublicId());
+        anuncio.setImageMimeType(dto.getImageMimeType());
+        anuncio.setExpiresAt(dto.getExpiresAt() != null && !dto.getExpiresAt().trim().isEmpty() ? LocalDate.parse(dto.getExpiresAt()) : null);
         if (dto.getMostrarEnPopup() != null) anuncio.setMostrarEnPopup(dto.getMostrarEnPopup());
         if (dto.getActivo() != null) anuncio.setActivo(dto.getActivo());
         if (dto.getOrden() != null) anuncio.setOrden(dto.getOrden());
@@ -86,9 +95,13 @@ public class AnuncioService {
                 .attachmentPublicId(anuncio.getAttachmentPublicId())
                 .attachmentResourceType(anuncio.getAttachmentResourceType())
                 .attachmentMimeType(anuncio.getAttachmentMimeType())
+                .imageUrl(anuncio.getImageUrl())
+                .imagePublicId(anuncio.getImagePublicId())
+                .imageMimeType(anuncio.getImageMimeType())
                 .mostrarEnPopup(anuncio.getMostrarEnPopup())
                 .activo(anuncio.getActivo())
                 .orden(anuncio.getOrden())
+                .expiresAt(anuncio.getExpiresAt() != null ? anuncio.getExpiresAt().toString() : null)
                 .build();
     }
 }
