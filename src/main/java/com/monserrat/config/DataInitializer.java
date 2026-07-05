@@ -2,6 +2,7 @@ package com.monserrat.config;
 
 import com.monserrat.entity.Admin;
 import com.monserrat.entity.AsignacionAcademica;
+import com.monserrat.entity.CatalogoAcademico;
 import com.monserrat.entity.ChatbotFaq;
 import com.monserrat.entity.Ingreso;
 import com.monserrat.entity.Institution;
@@ -11,6 +12,7 @@ import com.monserrat.entity.UsuarioAcademico;
 import com.monserrat.entity.Video;
 import com.monserrat.repository.AdminRepository;
 import com.monserrat.repository.AsignacionAcademicaRepository;
+import com.monserrat.repository.CatalogoAcademicoRepository;
 import com.monserrat.repository.ChatbotFaqRepository;
 import com.monserrat.repository.IngresoRepository;
 import com.monserrat.repository.InstitutionRepository;
@@ -49,7 +51,8 @@ public class DataInitializer {
             RedSocialRepository redSocialRepo,
             UsuarioAcademicoRepository usuarioAcademicoRepo,
             AsignacionAcademicaRepository asignacionRepo,
-            ChatbotFaqRepository chatbotFaqRepo) {
+            ChatbotFaqRepository chatbotFaqRepo,
+            CatalogoAcademicoRepository catalogoRepo) {
 
         return args -> {
             if (adminPassword != null && !adminPassword.isBlank()) {
@@ -154,106 +157,152 @@ public class DataInitializer {
                 log.info("{} preguntas frecuentes del chatbot cargadas", faqs.size());
             }
 
-            if (!usuarioAcademicoRepo.existsByDni("12345678")) {
-                usuarioAcademicoRepo.save(UsuarioAcademico.builder()
-                        .dni("12345678")
-                        .password(passwordEncoder.encode("12345678"))
-                        .nombre("Docente Demo")
-                        .rol(RolUsuario.DOCENTE)
-                        .materia("Matematica")
-                        .especialidad("Matematica")
-                        .telefono("900000001")
-                        .debeCambiarContrasena(true)
-                        .activo(true)
-                        .estado(com.monserrat.entity.EstadoUsuario.ACTIVO)
-                        .build());
-                log.info("Docente demo creado con DNI 12345678");
+            // Crear docentes de PRIMARIA
+            List<UsuarioAcademico> docentesPrimaria = List.of(
+                    UsuarioAcademico.builder().dni("10000001").password(passwordEncoder.encode("10000001")).nombre("Miss Daniela").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000002").password(passwordEncoder.encode("10000002")).nombre("Miss Leslie").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000003").password(passwordEncoder.encode("10000003")).nombre("Mirian Diego").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000004").password(passwordEncoder.encode("10000004")).nombre("Miss Karin").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000005").password(passwordEncoder.encode("10000005")).nombre("Rosvita Gómez").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000006").password(passwordEncoder.encode("10000006")).nombre("Prof. Odilio").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000007").password(passwordEncoder.encode("10000007")).nombre("Omar").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000008").password(passwordEncoder.encode("10000008")).nombre("Prof. Cristian Bonifacio").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000009").password(passwordEncoder.encode("10000009")).nombre("Miriam Marcelo").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000010").password(passwordEncoder.encode("10000010")).nombre("Miss Adaluz").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000011").password(passwordEncoder.encode("10000011")).nombre("Miss Lourdes").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000012").password(passwordEncoder.encode("10000012")).nombre("Prof. Christian Maga").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000013").password(passwordEncoder.encode("10000013")).nombre("Omar Bruno").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build()
+            );
+            for (UsuarioAcademico docente : docentesPrimaria) {
+                if (!usuarioAcademicoRepo.existsByDni(docente.getDni())) {
+                    usuarioAcademicoRepo.save(docente);
+                }
+            }
+            log.info("{} docentes de primaria creados/verificados", docentesPrimaria.size());
+
+            // Crear docentes de SECUNDARIA
+            List<UsuarioAcademico> docentesSecundaria = List.of(
+                    UsuarioAcademico.builder().dni("20000001").password(passwordEncoder.encode("20000001")).nombre("Adaluz Paye").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000002").password(passwordEncoder.encode("20000002")).nombre("Rosvita Gómez").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000003").password(passwordEncoder.encode("20000003")).nombre("Miriam Marcelo").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000004").password(passwordEncoder.encode("20000004")).nombre("Lourdes Bonilla").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000005").password(passwordEncoder.encode("20000005")).nombre("Daniela Ydrogo").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000006").password(passwordEncoder.encode("20000006")).nombre("Omar Bruno").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000007").password(passwordEncoder.encode("20000007")).nombre("Christian Magariño").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000008").password(passwordEncoder.encode("20000008")).nombre("Eladio Magariño").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000009").password(passwordEncoder.encode("20000009")).nombre("Jhonatan Carhuancho").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000010").password(passwordEncoder.encode("20000010")).nombre("Fernando Jacinto").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000011").password(passwordEncoder.encode("20000011")).nombre("Zenon Meza").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000012").password(passwordEncoder.encode("20000012")).nombre("César Veliz").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build()
+            );
+            for (UsuarioAcademico docente : docentesSecundaria) {
+                if (!usuarioAcademicoRepo.existsByDni(docente.getDni())) {
+                    usuarioAcademicoRepo.save(docente);
+                }
+            }
+            log.info("{} docentes de secundaria creados/verificados", docentesSecundaria.size());
+
+            // Crear áreas curriculares y competencias de PRIMARIA
+            // Verificar si ya existe C1 (competencia marker)
+            boolean competenciasExisten = catalogoRepo.findAll().stream()
+                    .anyMatch(c -> "C1".equals(c.getCodigo()) && "PRIMARIA".equals(c.getNivel()));
+            
+            if (!competenciasExisten) {
+                log.info("Iniciando creación de áreas curriculares y competencias de PRIMARIA...");
+                
+                // Áreas Curriculares de PRIMARIA
+                List<CatalogoAcademico> areasCurriculares = List.of(
+                        CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("INGLES").nombre("Inglés").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("PERSONAL_SOCIAL").nombre("Personal Social").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("EDUCACION_RELIGIOSA").nombre("Educación Religiosa").activo(true).orden(3).build(),
+                        CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("EDUCACION_FISICA").nombre("Educación Física").activo(true).orden(4).build(),
+                        CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("COMUNICACION").nombre("Comunicación").activo(true).orden(5).build(),
+                        CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("ARTE_CULTURA").nombre("Arte y Cultura").activo(true).orden(6).build(),
+                        CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("CASTELLANO_SEGUNDA_LENGUA").nombre("Castellano como Segunda Lengua").activo(true).orden(7).build(),
+                        CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("MATEMATICA").nombre("Matemática").activo(true).orden(8).build(),
+                        CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("CIENCIA_TECNOLOGIA").nombre("Ciencia y Tecnología").activo(true).orden(9).build(),
+                        CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("COMPETENCIAS_TRANSVERSALES").nombre("Competencias Transversales").activo(true).orden(10).build()
+                );
+                catalogoRepo.saveAll(areasCurriculares);
+                log.info("{} áreas curriculares de primaria creadas", areasCurriculares.size());
+                
+                // Competencias de PRIMARIA
+                List<CatalogoAcademico> competenciasPrimaria = List.of(
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C1").nombre("Construye su identidad.").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C2").nombre("Convive y participa democráticamente en la búsqueda del bien común.").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C3").nombre("Construye interpretaciones históricas.").activo(true).orden(3).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C4").nombre("Gestiona responsablemente el espacio y el ambiente.").activo(true).orden(4).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C5").nombre("Gestiona responsablemente los recursos económicos.").activo(true).orden(5).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C6").nombre("Construye su identidad como persona humana, amada por Dios, digna, libre y trascendente, comprendiendo la doctrina de su propia religión y abierta al diálogo con las que le son cercanas.").activo(true).orden(6).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C7").nombre("Asume la experiencia del encuentro personal y comunitario con Dios en su proyecto de vida, en coherencia con su creencia religiosa.").activo(true).orden(7).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C8").nombre("Se desenvuelve de manera autónoma a través de su motricidad.").activo(true).orden(8).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C9").nombre("Asume una vida saludable.").activo(true).orden(9).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C10").nombre("Interactúa a través de sus habilidades sociomotrices.").activo(true).orden(10).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C11").nombre("Se comunica oralmente en su lengua materna.").activo(true).orden(11).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C12").nombre("Lee diversos tipos de textos escritos.").activo(true).orden(12).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C13").nombre("Escribe diversos tipos de textos.").activo(true).orden(13).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C14").nombre("Aprecia de manera crítica manifestaciones artístico-culturales.").activo(true).orden(14).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C15").nombre("Crea proyectos desde los lenguajes artísticos.").activo(true).orden(15).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C16").nombre("Se comunica oralmente en castellano como segunda lengua.").activo(true).orden(16).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C17").nombre("Se comunica oralmente en inglés como lengua extranjera.").activo(true).orden(17).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C18").nombre("Lee diversos tipos de textos en inglés como lengua extranjera.").activo(true).orden(18).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C19").nombre("Escribe diversos tipos de textos en inglés como lengua extranjera.").activo(true).orden(19).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C20").nombre("Resuelve problemas de cantidad.").activo(true).orden(20).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C21").nombre("Resuelve problemas de regularidad, equivalencia y cambio.").activo(true).orden(21).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C22").nombre("Resuelve problemas de forma, movimiento y localización.").activo(true).orden(22).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C23").nombre("Resuelve problemas de gestión de datos e incertidumbre.").activo(true).orden(23).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C24").nombre("Indaga mediante métodos científicos para construir conocimientos.").activo(true).orden(24).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C25").nombre("Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía, biodiversidad, Tierra y Universo.").activo(true).orden(25).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C26").nombre("Diseña y construye soluciones tecnológicas para resolver problemas de su entorno.").activo(true).orden(26).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C27").nombre("Se desenvuelve en entornos virtuales generados por las TIC.").activo(true).orden(27).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C28").nombre("Gestiona su aprendizaje de manera autónoma.").activo(true).orden(28).build()
+                );
+                catalogoRepo.saveAll(competenciasPrimaria);
+                log.info("{} competencias de primaria creadas", competenciasPrimaria.size());
+            } else {
+                log.info("Áreas curriculares y competencias de PRIMARIA ya existen");
             }
 
-            if (!usuarioAcademicoRepo.existsByDni("87654321")) {
-                usuarioAcademicoRepo.save(UsuarioAcademico.builder()
-                        .dni("87654321")
-                        .password(passwordEncoder.encode("87654321"))
-                        .nombre("Alumno Demo")
-                        .rol(RolUsuario.ALUMNO)
-                        .nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA)
-                        .grado(com.monserrat.entity.Grado.QUINTO_SECUNDARIA)
-                        .seccion(com.monserrat.entity.Seccion.A)
-                        .telefono("900000002")
-                        .estado(com.monserrat.entity.EstadoUsuario.ACTIVO)
-                        .estadoMatricula(com.monserrat.entity.EstadoMatricula.MATRICULADO)
-                        .pensionPagada(false)
-                        .pensionObservacion("Pendiente de regularizacion")
-                        .debeCambiarContrasena(true)
-                        .activo(true)
-                        .build());
-                log.info("Alumno demo creado con DNI 87654321");
+            // Crear grados de PRIMARIA
+            boolean gradosExisten = catalogoRepo.findAll().stream()
+                    .anyMatch(c -> "PRIMERO_PRIMARIA".equals(c.getCodigo()) && "PRIMARIA".equals(c.getNivel()));
+            
+            if (!gradosExisten) {
+                log.info("Iniciando creación de grados de PRIMARIA...");
+                
+                List<CatalogoAcademico> gradosPrimaria = List.of(
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("PRIMARIA").codigo("PRIMERO_PRIMARIA").nombre("Primer Grado").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("PRIMARIA").codigo("SEGUNDO_PRIMARIA").nombre("Segundo Grado").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("PRIMARIA").codigo("TERCERO_PRIMARIA").nombre("Tercer Grado").activo(true).orden(3).build(),
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("PRIMARIA").codigo("CUARTO_PRIMARIA").nombre("Cuarto Grado").activo(true).orden(4).build(),
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("PRIMARIA").codigo("QUINTO_PRIMARIA").nombre("Quinto Grado").activo(true).orden(5).build(),
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("PRIMARIA").codigo("SEXTO_PRIMARIA").nombre("Sexto Grado").activo(true).orden(6).build()
+                );
+                catalogoRepo.saveAll(gradosPrimaria);
+                log.info("{} grados de primaria creados", gradosPrimaria.size());
+            } else {
+                log.info("Grados de PRIMARIA ya existen");
             }
 
-            if (!usuarioAcademicoRepo.existsByDni("11223344")) {
-                usuarioAcademicoRepo.save(UsuarioAcademico.builder()
-                        .dni("11223344")
-                        .password(passwordEncoder.encode("11223344"))
-                        .nombre("Alumno Primaria Demo")
-                        .rol(RolUsuario.ALUMNO)
-                        .nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA)
-                        .grado(com.monserrat.entity.Grado.PRIMERO_PRIMARIA)
-                        .seccion(com.monserrat.entity.Seccion.A)
-                        .telefono("900000003")
-                        .estado(com.monserrat.entity.EstadoUsuario.ACTIVO)
-                        .estadoMatricula(com.monserrat.entity.EstadoMatricula.MATRICULADO)
-                        .pensionPagada(false)
-                        .pensionObservacion("Pendiente de regularizacion")
-                        .debeCambiarContrasena(true)
-                        .activo(true)
-                        .build());
-                log.info("Alumno primaria demo creado con DNI 11223344");
-            }
-
-            if (!usuarioAcademicoRepo.existsByDni("22334455")) {
-                usuarioAcademicoRepo.save(UsuarioAcademico.builder()
-                        .dni("22334455")
-                        .password(passwordEncoder.encode("22334455"))
-                        .nombre("Docente Primaria Demo")
-                        .rol(RolUsuario.DOCENTE)
-                        .telefono("900000004")
-                        .debeCambiarContrasena(true)
-                        .activo(true)
-                        .estado(com.monserrat.entity.EstadoUsuario.ACTIVO)
-                        .build());
-                log.info("Docente primaria demo creado con DNI 22334455");
-            }
-
-            UsuarioAcademico docenteDemo = usuarioAcademicoRepo.findByDni("12345678").orElse(null);
-            UsuarioAcademico alumnoDemo = usuarioAcademicoRepo.findByDni("87654321").orElse(null);
-            UsuarioAcademico docentePrimariaDemo = usuarioAcademicoRepo.findByDni("22334455").orElse(null);
-            UsuarioAcademico alumnoPrimariaDemo = usuarioAcademicoRepo.findByDni("11223344").orElse(null);
-            if (docenteDemo != null && alumnoDemo != null && docentePrimariaDemo != null && alumnoPrimariaDemo != null && asignacionRepo.count() == 0) {
-                asignacionRepo.save(AsignacionAcademica.builder()
-                        .docente(docenteDemo)
-                        .alumno(alumnoDemo)
-                        .curso(com.monserrat.entity.CursoAcademico.MATEMATICA)
-                        .nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA)
-                        .grado(com.monserrat.entity.Grado.QUINTO_SECUNDARIA)
-                        .seccion(com.monserrat.entity.Seccion.A)
-                        .activo(true)
-                        .build());
-
-                asignacionRepo.save(AsignacionAcademica.builder()
-                        .docente(docentePrimariaDemo)
-                        .alumno(alumnoPrimariaDemo)
-                        .curso(com.monserrat.entity.CursoAcademico.MATEMATICA)
-                        .nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA)
-                        .grado(com.monserrat.entity.Grado.PRIMERO_PRIMARIA)
-                        .seccion(com.monserrat.entity.Seccion.A)
-                        .activo(true)
-                        .build());
-
-                log.info("Asignaciones academicas demo creadas");
+            // Crear secciones de PRIMARIA
+            boolean seccionesExisten = catalogoRepo.findAll().stream()
+                    .anyMatch(c -> "A".equals(c.getCodigo()) && "SECCION".equals(c.getTipo()) && "PRIMARIA".equals(c.getNivel()));
+            
+            if (!seccionesExisten) {
+                log.info("Iniciando creación de secciones de PRIMARIA...");
+                
+                List<CatalogoAcademico> seccionesPrimaria = List.of(
+                        CatalogoAcademico.builder().tipo("SECCION").nivel("PRIMARIA").codigo("A").nombre("Sección A").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("SECCION").nivel("PRIMARIA").codigo("B").nombre("Sección B").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("SECCION").nivel("PRIMARIA").codigo("C").nombre("Sección C").activo(true).orden(3).build()
+                );
+                catalogoRepo.saveAll(seccionesPrimaria);
+                log.info("{} secciones de primaria creadas", seccionesPrimaria.size());
+            } else {
+                log.info("Secciones de PRIMARIA ya existen");
             }
 
             log.info("DataInitializer completado - I.E.P. Nuestra Senora de Monserrat");
         };
     }
 }
-

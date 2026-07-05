@@ -53,7 +53,11 @@ public class AcademicoConfigService {
         salonRepository.deleteAllInBatch();
 
         List<CatalogoAcademico> catalogos = new ArrayList<>();
-        addCatalogos(catalogos, "CURSO", "PRIMARIA", request.getCursosPrimaria());
+        // Primaria usa "AREA_CURRICULAR" (término correcto del currículo peruano
+        // para ese nivel); secundaria usa "CURSO". Mantener esta distinción
+        // consistente en TODO el flujo: DataInitializer, guardar() y el switch
+        // de addCatalog() de abajo deben usar siempre las mismas dos etiquetas.
+        addCatalogos(catalogos, "AREA_CURRICULAR", "PRIMARIA", request.getCursosPrimaria());
         addCatalogos(catalogos, "CURSO", "SECUNDARIA", request.getCursosSecundaria());
         addCatalogos(catalogos, "GRADO", "PRIMARIA", request.getGradosPrimaria());
         addCatalogos(catalogos, "COMPETENCIA", "PRIMARIA", request.getCompetenciasPrimaria());
@@ -196,7 +200,10 @@ public class AcademicoConfigService {
                 .build();
         String key = item.getTipo() + "_" + item.getNivel();
         switch (key) {
-            case "CURSO_PRIMARIA" -> dto.getCursosPrimaria().add(catalogItem);
+            // "AREA_CURRICULAR_PRIMARIA": nombre correcto para primaria, usado
+            // tanto por el DataInitializer (carga inicial) como por guardar()
+            // (ediciones desde el panel de administración) de aqui en adelante.
+            case "AREA_CURRICULAR_PRIMARIA" -> dto.getCursosPrimaria().add(catalogItem);
             case "COMPETENCIA_PRIMARIA" -> dto.getCompetenciasPrimaria().add(catalogItem);
             case "CURSO_SECUNDARIA" -> dto.getCursosSecundaria().add(catalogItem);
             case "GRADO_PRIMARIA" -> dto.getGradosPrimaria().add(catalogItem);

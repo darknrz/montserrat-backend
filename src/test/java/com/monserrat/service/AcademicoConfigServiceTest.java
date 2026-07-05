@@ -112,6 +112,7 @@ class AcademicoConfigServiceTest {
             .build();
 
         AcademicoConfigDTO result = academicoConfigService.guardar(request);
+        System.out.println("DEBUG competencias: " + result.getCompetenciasPrimaria());
 
         long competenciasPersistidas = result.getCompetenciasPrimaria().stream()
             .filter(item -> "C1".equals(item.getId()) || "C2".equals(item.getId()))
