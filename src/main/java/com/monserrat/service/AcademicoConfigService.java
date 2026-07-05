@@ -36,6 +36,7 @@ public class AcademicoConfigService {
         addCatalogos(catalogos, "CURSO", "PRIMARIA", request.getCursosPrimaria());
         addCatalogos(catalogos, "CURSO", "SECUNDARIA", request.getCursosSecundaria());
         addCatalogos(catalogos, "GRADO", "PRIMARIA", request.getGradosPrimaria());
+        addCatalogos(catalogos, "COMPETENCIA", "PRIMARIA", request.getCompetenciasPrimaria());
         addCatalogos(catalogos, "GRADO", "SECUNDARIA", request.getGradosSecundaria());
         addCatalogos(catalogos, "SECCION", "PRIMARIA", request.getSeccionesPrimaria());
         addCatalogos(catalogos, "SECCION", "SECUNDARIA", request.getSeccionesSecundaria());
@@ -114,6 +115,7 @@ public class AcademicoConfigService {
         String key = item.getTipo() + "_" + item.getNivel();
         switch (key) {
             case "CURSO_PRIMARIA" -> dto.getCursosPrimaria().add(catalogItem);
+            case "COMPETENCIA_PRIMARIA" -> dto.getCompetenciasPrimaria().add(catalogItem);
             case "CURSO_SECUNDARIA" -> dto.getCursosSecundaria().add(catalogItem);
             case "GRADO_PRIMARIA" -> dto.getGradosPrimaria().add(catalogItem);
             case "GRADO_SECUNDARIA" -> dto.getGradosSecundaria().add(catalogItem);

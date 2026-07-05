@@ -16,6 +16,8 @@ public class AcademicoConfigDTO {
     @Builder.Default
     private List<CatalogItemDTO> cursosPrimaria = new ArrayList<>();
     @Builder.Default
+    private List<CatalogItemDTO> competenciasPrimaria = new ArrayList<>();
+    @Builder.Default
     private List<CatalogItemDTO> cursosSecundaria = new ArrayList<>();
     @Builder.Default
     private List<CatalogItemDTO> gradosPrimaria = new ArrayList<>();

@@ -614,7 +614,9 @@ public class AcademicoService {
 
     private List<CursoAcademico> cursosParaAsignacionAula(AsignacionAulaRequest request) {
         if (NivelEducativo.PRIMARIA.equals(request.getNivelEducativo())) {
-            return Arrays.asList(CursoAcademico.values());
+            return request.getCurso() == null
+                    ? Arrays.asList(CursoAcademico.values())
+                    : List.of(request.getCurso());
         }
         if (request.getCurso() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -634,6 +636,15 @@ public class AcademicoService {
 
     private void validarDocenteCurso(UsuarioAcademico docente, NivelEducativo nivelEducativo, CursoAcademico curso) {
         if (NivelEducativo.PRIMARIA.equals(nivelEducativo)) {
+            String materia = normalizarTexto(docente.getMateria());
+            if (!materia.isBlank() && curso == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "En primaria debes seleccionar la competencia (área curricular) para el docente especialista");
+            }
+            if (!materia.isBlank() && curso != null && !materia.equalsIgnoreCase(curso.name())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "El docente de primaria no corresponde a la competencia seleccionada");
+            }
             return;
         }
         String materia = normalizarTexto(docente.getMateria());
@@ -645,6 +656,10 @@ public class AcademicoService {
 
     private void validarDocentePrimariaUnSoloSalon(UsuarioAcademico docente, AsignacionAulaRequest request) {
         if (!NivelEducativo.PRIMARIA.equals(request.getNivelEducativo())) {
+            return;
+        }
+        String materia = normalizarTexto(docente.getMateria());
+        if (!materia.isBlank()) {
             return;
         }
         boolean tieneOtroSalon = asignacionRepository.findByDocente_DniAndActivoTrue(docente.getDni()).stream()

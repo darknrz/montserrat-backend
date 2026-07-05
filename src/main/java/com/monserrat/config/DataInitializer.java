@@ -190,9 +190,45 @@ public class DataInitializer {
                 log.info("Alumno demo creado con DNI 87654321");
             }
 
+            if (!usuarioAcademicoRepo.existsByDni("11223344")) {
+                usuarioAcademicoRepo.save(UsuarioAcademico.builder()
+                        .dni("11223344")
+                        .password(passwordEncoder.encode("11223344"))
+                        .nombre("Alumno Primaria Demo")
+                        .rol(RolUsuario.ALUMNO)
+                        .nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA)
+                        .grado(com.monserrat.entity.Grado.PRIMERO_PRIMARIA)
+                        .seccion(com.monserrat.entity.Seccion.A)
+                        .telefono("900000003")
+                        .estado(com.monserrat.entity.EstadoUsuario.ACTIVO)
+                        .estadoMatricula(com.monserrat.entity.EstadoMatricula.MATRICULADO)
+                        .pensionPagada(false)
+                        .pensionObservacion("Pendiente de regularizacion")
+                        .debeCambiarContrasena(true)
+                        .activo(true)
+                        .build());
+                log.info("Alumno primaria demo creado con DNI 11223344");
+            }
+
+            if (!usuarioAcademicoRepo.existsByDni("22334455")) {
+                usuarioAcademicoRepo.save(UsuarioAcademico.builder()
+                        .dni("22334455")
+                        .password(passwordEncoder.encode("22334455"))
+                        .nombre("Docente Primaria Demo")
+                        .rol(RolUsuario.DOCENTE)
+                        .telefono("900000004")
+                        .debeCambiarContrasena(true)
+                        .activo(true)
+                        .estado(com.monserrat.entity.EstadoUsuario.ACTIVO)
+                        .build());
+                log.info("Docente primaria demo creado con DNI 22334455");
+            }
+
             UsuarioAcademico docenteDemo = usuarioAcademicoRepo.findByDni("12345678").orElse(null);
             UsuarioAcademico alumnoDemo = usuarioAcademicoRepo.findByDni("87654321").orElse(null);
-            if (docenteDemo != null && alumnoDemo != null && asignacionRepo.count() == 0) {
+            UsuarioAcademico docentePrimariaDemo = usuarioAcademicoRepo.findByDni("22334455").orElse(null);
+            UsuarioAcademico alumnoPrimariaDemo = usuarioAcademicoRepo.findByDni("11223344").orElse(null);
+            if (docenteDemo != null && alumnoDemo != null && docentePrimariaDemo != null && alumnoPrimariaDemo != null && asignacionRepo.count() == 0) {
                 asignacionRepo.save(AsignacionAcademica.builder()
                         .docente(docenteDemo)
                         .alumno(alumnoDemo)
@@ -202,7 +238,18 @@ public class DataInitializer {
                         .seccion(com.monserrat.entity.Seccion.A)
                         .activo(true)
                         .build());
-                log.info("Asignacion academica demo creada");
+
+                asignacionRepo.save(AsignacionAcademica.builder()
+                        .docente(docentePrimariaDemo)
+                        .alumno(alumnoPrimariaDemo)
+                        .curso(com.monserrat.entity.CursoAcademico.MATEMATICA)
+                        .nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA)
+                        .grado(com.monserrat.entity.Grado.PRIMERO_PRIMARIA)
+                        .seccion(com.monserrat.entity.Seccion.A)
+                        .activo(true)
+                        .build());
+
+                log.info("Asignaciones academicas demo creadas");
             }
 
             log.info("DataInitializer completado - I.E.P. Nuestra Senora de Monserrat");
