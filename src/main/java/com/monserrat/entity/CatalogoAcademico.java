@@ -26,7 +26,7 @@ public class CatalogoAcademico {
     @Column(nullable = false, length = 80)
     private String codigo;
 
-    @Column(nullable = false, length = 120)
+    @Column(nullable = false, length = 500)
     private String nombre;
 
     @Column(nullable = false)

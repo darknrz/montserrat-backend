@@ -6,7 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -17,6 +19,10 @@ public class AcademicoConfigDTO {
     private List<CatalogItemDTO> cursosPrimaria = new ArrayList<>();
     @Builder.Default
     private List<CatalogItemDTO> competenciasPrimaria = new ArrayList<>();
+    @Builder.Default
+    private Map<String, List<String>> competenciasPorCursoPrimaria = new LinkedHashMap<>();
+    @Builder.Default
+    private Map<String, String> docentesPorCompetencia = new LinkedHashMap<>();
     @Builder.Default
     private List<CatalogItemDTO> cursosSecundaria = new ArrayList<>();
     @Builder.Default

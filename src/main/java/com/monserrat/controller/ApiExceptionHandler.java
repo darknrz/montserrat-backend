@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -51,6 +52,17 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body(message));
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleMessageNotReadable(HttpMessageNotReadableException ex) {
+        String message = mapUnreadableMessage(ex);
+        return ResponseEntity.badRequest().body(body(message));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(body(ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
         ex.printStackTrace();
@@ -74,6 +86,9 @@ public class ApiExceptionHandler {
         String text = rootMessage(ex);
         String normalized = text == null ? "" : text.toLowerCase();
 
+        if (normalized.contains("value too long") || normalized.contains("too long for type") || normalized.contains("demasiado largo")) {
+            return "El texto supera el máximo permitido de 500 caracteres";
+        }
         if (normalized.contains("dni")) {
             return "El DNI ya esta registrado";
         }
@@ -92,6 +107,16 @@ public class ApiExceptionHandler {
             current = current.getCause();
         }
         return current.getMessage();
+    }
+
+    private String mapUnreadableMessage(HttpMessageNotReadableException ex) {
+        String text = rootMessage(ex);
+        String normalized = text == null ? "" : text.toLowerCase();
+        if (normalized.contains("cannot coerce empty string") || normalized.contains("cannot deserialize value of type")
+                || normalized.contains("no enum constant") || normalized.contains("cannot deserialize instance of")) {
+            return "El valor enviado para un campo enum no es valido";
+        }
+        return "Los datos enviados no son validos";
     }
 
     private String capitalize(String value) {
