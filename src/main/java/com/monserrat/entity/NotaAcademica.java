@@ -42,6 +42,9 @@ public class NotaAcademica {
     @Column(length = 300)
     private String observacion;
 
+    @Column(name = "competencia_id", length = 50)
+    private String competenciaId;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

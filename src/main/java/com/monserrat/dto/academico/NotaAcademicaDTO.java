@@ -26,6 +26,7 @@ public class NotaAcademicaDTO {
     private TipoEvaluacion tipoEvaluacion;
     private Double valor;
     private String observacion;
+    private String competenciaId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

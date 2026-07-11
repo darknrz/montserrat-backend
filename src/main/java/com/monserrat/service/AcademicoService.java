@@ -209,6 +209,7 @@ public class AcademicoService {
                 .tipoEvaluacion(request.getTipoEvaluacion())
                 .valor(request.getValor())
                 .observacion(request.getObservacion())
+                .competenciaId(request.getCompetenciaId())
                 .build();
 
         return toNotaDto(notaRepository.save(nota));
@@ -230,6 +231,7 @@ public class AcademicoService {
         nota.setTipoEvaluacion(request.getTipoEvaluacion());
         nota.setValor(request.getValor());
         nota.setObservacion(request.getObservacion());
+        nota.setCompetenciaId(request.getCompetenciaId());
         return toNotaDto(notaRepository.save(nota));
     }
 
@@ -817,6 +819,7 @@ public class AcademicoService {
                 .tipoEvaluacion(nota.getTipoEvaluacion())
                 .valor(nota.getValor())
                 .observacion(nota.getObservacion())
+                .competenciaId(nota.getCompetenciaId())
                 .createdAt(nota.getCreatedAt())
                 .updatedAt(nota.getUpdatedAt())
                 .build();

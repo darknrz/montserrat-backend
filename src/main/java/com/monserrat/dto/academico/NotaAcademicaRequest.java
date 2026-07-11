@@ -26,4 +26,6 @@ public class NotaAcademicaRequest {
     private Double valor;
 
     private String observacion;
+
+    private String competenciaId;
 }
