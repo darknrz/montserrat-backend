@@ -30,6 +30,8 @@ public class AcademicoConfigService {
         AcademicoConfigDTO dto = new AcademicoConfigDTO();
         Map<String, List<String>> competenciasPorCurso = new LinkedHashMap<>();
         Map<String, String> docentesPorCompetencia = new LinkedHashMap<>();
+        Map<String, List<String>> competenciasPorCursoSecundaria = new LinkedHashMap<>();
+        Map<String, String> docentesPorCompetenciaSecundaria = new LinkedHashMap<>();
 
         catalogoRepository.findAllByOrderByOrdenAscIdAsc().forEach(item -> {
             addCatalog(dto, item);
@@ -39,10 +41,18 @@ public class AcademicoConfigService {
             if ("DOCENTE_COMPETENCIA".equals(item.getTipo()) && "PRIMARIA".equals(item.getNivel())) {
                 docentesPorCompetencia.put(item.getCodigo(), item.getNombre());
             }
+            if ("COMPETENCIA_CURSO".equals(item.getTipo()) && "SECUNDARIA".equals(item.getNivel())) {
+                competenciasPorCursoSecundaria.put(item.getCodigo(), parseCsvList(item.getNombre()));
+            }
+            if ("DOCENTE_COMPETENCIA".equals(item.getTipo()) && "SECUNDARIA".equals(item.getNivel())) {
+                docentesPorCompetenciaSecundaria.put(item.getCodigo(), item.getNombre());
+            }
         });
 
         dto.setCompetenciasPorCursoPrimaria(competenciasPorCurso);
         dto.setDocentesPorCompetencia(docentesPorCompetencia);
+        dto.setCompetenciasPorCursoSecundaria(competenciasPorCursoSecundaria);
+        dto.setDocentesPorCompetenciaSecundaria(docentesPorCompetenciaSecundaria);
         dto.setSalones(salonRepository.findAllByOrderByOrdenAscIdAsc().stream().map(this::toSalonDto).toList());
         return dto;
     }
@@ -61,11 +71,15 @@ public class AcademicoConfigService {
         addCatalogos(catalogos, "CURSO", "SECUNDARIA", request.getCursosSecundaria());
         addCatalogos(catalogos, "GRADO", "PRIMARIA", request.getGradosPrimaria());
         addCatalogos(catalogos, "COMPETENCIA", "PRIMARIA", request.getCompetenciasPrimaria());
+        addCatalogos(catalogos, "COMPETENCIA", "SECUNDARIA", request.getCompetenciasSecundaria());
         addCatalogos(catalogos, "GRADO", "SECUNDARIA", request.getGradosSecundaria());
         addCatalogos(catalogos, "SECCION", "PRIMARIA", request.getSeccionesPrimaria());
         addCatalogos(catalogos, "SECCION", "SECUNDARIA", request.getSeccionesSecundaria());
+        addCatalogos(catalogos, "NIVEL_ACADEMICO", "GLOBAL", request.getNivelesAcademicos());
         addCompetenciasPorCurso(catalogos, request.getCompetenciasPorCursoPrimaria());
         addDocentesPorCompetencia(catalogos, request.getDocentesPorCompetencia());
+        addCompetenciasPorCursoSecundaria(catalogos, request.getCompetenciasPorCursoSecundaria());
+        addDocentesPorCompetenciaSecundaria(catalogos, request.getDocentesPorCompetenciaSecundaria());
         catalogoRepository.saveAll(catalogos);
 
         Integer minPct = request.getMinAsistenciaPorcentaje() != null ? request.getMinAsistenciaPorcentaje() : 70;
@@ -210,6 +224,8 @@ public class AcademicoConfigService {
             case "GRADO_SECUNDARIA" -> dto.getGradosSecundaria().add(catalogItem);
             case "SECCION_PRIMARIA" -> dto.getSeccionesPrimaria().add(catalogItem);
             case "SECCION_SECUNDARIA" -> dto.getSeccionesSecundaria().add(catalogItem);
+            case "NIVEL_ACADEMICO_GLOBAL" -> dto.getNivelesAcademicos().add(catalogItem);
+            case "COMPETENCIA_SECUNDARIA" -> dto.getCompetenciasSecundaria().add(catalogItem);
             default -> {
             }
         }
@@ -223,5 +239,35 @@ public class AcademicoConfigService {
                 .aula(salon.getAula())
                 .active(salon.getActivo())
                 .build();
+    }
+
+    private void addCompetenciasPorCursoSecundaria(List<CatalogoAcademico> target, Map<String, List<String>> mappings) {
+        if (mappings == null || mappings.isEmpty()) return;
+        int index = 3000;
+        for (Map.Entry<String, List<String>> entry : mappings.entrySet()) {
+            target.add(CatalogoAcademico.builder()
+                    .tipo("COMPETENCIA_CURSO")
+                    .nivel("SECUNDARIA")
+                    .codigo(entry.getKey())
+                    .nombre(serializeList(entry.getValue()))
+                    .activo(true)
+                    .orden(index++)
+                    .build());
+        }
+    }
+
+    private void addDocentesPorCompetenciaSecundaria(List<CatalogoAcademico> target, Map<String, String> mappings) {
+        if (mappings == null || mappings.isEmpty()) return;
+        int index = 4000;
+        for (Map.Entry<String, String> entry : mappings.entrySet()) {
+            target.add(CatalogoAcademico.builder()
+                    .tipo("DOCENTE_COMPETENCIA")
+                    .nivel("SECUNDARIA")
+                    .codigo(entry.getKey())
+                    .nombre(entry.getValue())
+                    .activo(true)
+                    .orden(index++)
+                    .build());
+        }
     }
 }

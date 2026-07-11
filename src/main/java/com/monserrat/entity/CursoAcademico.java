@@ -14,7 +14,10 @@ public enum CursoAcademico {
     EDUCACION_RELIGIOSA("Educacion Religiosa"),
     EDUCACION_FISICA("Educacion Fisica"),
     CASTELLANO_SEGUNDA_LENGUA("Castellano como Segunda Lengua"),
-    COMPETENCIAS_TRANSVERSALES("Competencias Transversales");
+    COMPETENCIAS_TRANSVERSALES("Competencias Transversales"),
+    DPCC("Desarrollo Personal, Ciudadanía y Cívica"),
+    CIENCIAS_SOCIALES("Ciencias Sociales"),
+    EDUCACION_TRABAJO("Educación para el Trabajo");
 
     private final String nombre;
 

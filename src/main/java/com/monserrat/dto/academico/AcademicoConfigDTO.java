@@ -26,6 +26,12 @@ public class AcademicoConfigDTO {
     @Builder.Default
     private List<CatalogItemDTO> cursosSecundaria = new ArrayList<>();
     @Builder.Default
+    private List<CatalogItemDTO> competenciasSecundaria = new ArrayList<>();
+    @Builder.Default
+    private Map<String, List<String>> competenciasPorCursoSecundaria = new LinkedHashMap<>();
+    @Builder.Default
+    private Map<String, String> docentesPorCompetenciaSecundaria = new LinkedHashMap<>();
+    @Builder.Default
     private List<CatalogItemDTO> gradosPrimaria = new ArrayList<>();
     @Builder.Default
     private List<CatalogItemDTO> gradosSecundaria = new ArrayList<>();
@@ -39,6 +45,8 @@ public class AcademicoConfigDTO {
     private Integer minAsistenciaPorcentaje = 70;
     @Builder.Default
     private String ingresantesModelo = "card-grid";
+    @Builder.Default
+    private List<CatalogItemDTO> nivelesAcademicos = new ArrayList<>();
 
     @Data
     @Builder

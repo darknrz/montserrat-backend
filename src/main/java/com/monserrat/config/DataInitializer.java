@@ -203,13 +203,22 @@ public class DataInitializer {
             log.info("{} docentes de secundaria creados/verificados", docentesSecundaria.size());
 
             // Crear áreas curriculares y competencias de PRIMARIA
-            // Verificar si ya existe C1 (competencia marker)
-            boolean competenciasExisten = catalogoRepo.findAll().stream()
-                    .anyMatch(c -> "C1".equals(c.getCodigo()) && "PRIMARIA".equals(c.getNivel()));
-            
-            if (!competenciasExisten) {
-                log.info("Iniciando creación de áreas curriculares y competencias de PRIMARIA...");
-                
+            long countCompetenciasPrimaria = catalogoRepo.findAll().stream()
+                    .filter(c -> "COMPETENCIA".equals(c.getTipo()) && "PRIMARIA".equals(c.getNivel()))
+                    .count();
+
+            if (countCompetenciasPrimaria != 30) {
+                log.info("Recreando áreas curriculares y competencias de PRIMARIA con relaciones...");
+                List<CatalogoAcademico> aEliminar = catalogoRepo.findAll().stream()
+                        .filter(c -> "PRIMARIA".equals(c.getNivel()) && 
+                                ("AREA_CURRICULAR".equals(c.getTipo()) || 
+                                 "COMPETENCIA".equals(c.getTipo()) || 
+                                 "COMPETENCIA_CURSO".equals(c.getTipo())))
+                        .toList();
+                if (!aEliminar.isEmpty()) {
+                    catalogoRepo.deleteAll(aEliminar);
+                }
+
                 // Áreas Curriculares de PRIMARIA
                 List<CatalogoAcademico> areasCurriculares = List.of(
                         CatalogoAcademico.builder().tipo("AREA_CURRICULAR").nivel("PRIMARIA").codigo("INGLES").nombre("Inglés").activo(true).orden(1).build(),
@@ -225,7 +234,7 @@ public class DataInitializer {
                 );
                 catalogoRepo.saveAll(areasCurriculares);
                 log.info("{} áreas curriculares de primaria creadas", areasCurriculares.size());
-                
+
                 // Competencias de PRIMARIA
                 List<CatalogoAcademico> competenciasPrimaria = List.of(
                         CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C1").nombre("Construye su identidad.").activo(true).orden(1).build(),
@@ -255,12 +264,139 @@ public class DataInitializer {
                         CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C25").nombre("Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía, biodiversidad, Tierra y Universo.").activo(true).orden(25).build(),
                         CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C26").nombre("Diseña y construye soluciones tecnológicas para resolver problemas de su entorno.").activo(true).orden(26).build(),
                         CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C27").nombre("Se desenvuelve en entornos virtuales generados por las TIC.").activo(true).orden(27).build(),
-                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C28").nombre("Gestiona su aprendizaje de manera autónoma.").activo(true).orden(28).build()
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C28").nombre("Gestiona su aprendizaje de manera autónoma.").activo(true).orden(28).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C29").nombre("Lee diversos tipos de textos escritos en castellano como segunda lengua.").activo(true).orden(29).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("PRIMARIA").codigo("C30").nombre("Escribe diversos tipos de textos en castellano como segunda lengua.").activo(true).orden(30).build()
                 );
                 catalogoRepo.saveAll(competenciasPrimaria);
                 log.info("{} competencias de primaria creadas", competenciasPrimaria.size());
+
+                // Mapeos de Competencias por Curso en PRIMARIA
+                List<CatalogoAcademico> competenciaCursosPrim = List.of(
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("PRIMARIA").codigo("INGLES").nombre("C17,C18,C19").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("PRIMARIA").codigo("PERSONAL_SOCIAL").nombre("C1,C2,C3,C4,C5").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("PRIMARIA").codigo("EDUCACION_RELIGIOSA").nombre("C6,C7").activo(true).orden(3).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("PRIMARIA").codigo("EDUCACION_FISICA").nombre("C8,C9,C10").activo(true).orden(4).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("PRIMARIA").codigo("COMUNICACION").nombre("C11,C12,C13").activo(true).orden(5).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("PRIMARIA").codigo("ARTE_CULTURA").nombre("C14,C15").activo(true).orden(6).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("PRIMARIA").codigo("CASTELLANO_SEGUNDA_LENGUA").nombre("C16,C29,C30").activo(true).orden(7).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("PRIMARIA").codigo("MATEMATICA").nombre("C20,C21,C22,C23").activo(true).orden(8).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("PRIMARIA").codigo("CIENCIA_TECNOLOGIA").nombre("C24,C25,C26").activo(true).orden(9).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("PRIMARIA").codigo("COMPETENCIAS_TRANSVERSALES").nombre("C27,C28").activo(true).orden(10).build()
+                );
+                catalogoRepo.saveAll(competenciaCursosPrim);
+                log.info("{} mapeos curso-competencia de primaria creados", competenciaCursosPrim.size());
             } else {
-                log.info("Áreas curriculares y competencias de PRIMARIA ya existen");
+                log.info("Áreas curriculares y competencias de PRIMARIA ya existen y están mapeadas");
+            }
+
+            // Crear áreas curriculares, competencias y mapeos de SECUNDARIA
+            boolean competenciasSecExisten = catalogoRepo.findAll().stream()
+                    .anyMatch(c -> "CS1".equals(c.getCodigo()) && "SECUNDARIA".equals(c.getNivel()));
+            
+            if (!competenciasSecExisten) {
+                log.info("Iniciando creación de áreas curriculares y competencias de SECUNDARIA...");
+                
+                // Cursos de SECUNDARIA
+                List<CatalogoAcademico> cursosSecundaria = List.of(
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("DPCC").nombre("Desarrollo Personal, Ciudadanía y Cívica").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("CIENCIAS_SOCIALES").nombre("Ciencias Sociales").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("EDUCACION_RELIGIOSA").nombre("Educación Religiosa").activo(true).orden(3).build(),
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("EDUCACION_TRABAJO").nombre("Educación para el Trabajo").activo(true).orden(4).build(),
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("EDUCACION_FISICA").nombre("Educación Física").activo(true).orden(5).build(),
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("COMUNICACION").nombre("Comunicación").activo(true).orden(6).build(),
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("ARTE_CULTURA").nombre("Arte y Cultura").activo(true).orden(7).build(),
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("CASTELLANO_SEGUNDA_LENGUA").nombre("Castellano como Segunda Lengua").activo(true).orden(8).build(),
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("INGLES").nombre("Inglés").activo(true).orden(9).build(),
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("MATEMATICA").nombre("Matemática").activo(true).orden(10).build(),
+                        CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("CIENCIA_TECNOLOGIA").nombre("Ciencia y Tecnología").activo(true).orden(11).build()
+                );
+                catalogoRepo.saveAll(cursosSecundaria);
+                log.info("{} cursos de secundaria creados", cursosSecundaria.size());
+                
+                // Competencias de SECUNDARIA
+                List<CatalogoAcademico> competenciasSecundaria = List.of(
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS1").nombre("Construye su identidad.").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS2").nombre("Convive y participa democráticamente en la búsqueda del bien común.").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS3").nombre("Construye interpretaciones históricas.").activo(true).orden(3).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS4").nombre("Gestiona responsablemente el espacio y el ambiente.").activo(true).orden(4).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS5").nombre("Gestiona responsablemente los recursos económicos.").activo(true).orden(5).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS6").nombre("Construye su identidad como persona humana, amada por Dios, digna, libre y trascendente, comprendiendo la doctrina de su propia religión, abierto al diálogo con las que le son cercanas.").activo(true).orden(6).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS7").nombre("Asume la experiencia del encuentro personal y comunitario con Dios en su proyecto de vida en coherencia con su creencia religiosa.").activo(true).orden(7).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS8").nombre("Gestiona proyectos de emprendimiento económico o social.").activo(true).orden(8).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS9").nombre("Se desenvuelve de manera autónoma a través de su motricidad.").activo(true).orden(9).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS10").nombre("Asume una vida saludable.").activo(true).orden(10).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS11").nombre("Interactúa a través de sus habilidades sociomotrices.").activo(true).orden(11).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS12").nombre("Se comunica oralmente en su lengua materna.").activo(true).orden(12).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS13").nombre("Lee diversos tipos de textos escritos.").activo(true).orden(13).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS14").nombre("Escribe diversos tipos de textos.").activo(true).orden(14).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS15").nombre("Aprecia de manera crítica manifestaciones artístico-culturales.").activo(true).orden(15).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS16").nombre("Crea proyectos desde los lenguajes artísticos.").activo(true).orden(16).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS17").nombre("Se comunica oralmente en lengua materna.").activo(true).orden(17).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS18").nombre("Lee diversos tipos de textos escritos.").activo(true).orden(18).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS19").nombre("Escribe diversos tipos de textos.").activo(true).orden(19).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS20").nombre("Se comunica oralmente en inglés como lengua extranjera.").activo(true).orden(20).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS21").nombre("Lee diversos tipos de textos en inglés como lengua extranjera.").activo(true).orden(21).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS22").nombre("Escribe diversos tipos de textos en inglés como lengua extranjera.").activo(true).orden(22).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS23").nombre("Resuelve problemas de cantidad.").activo(true).orden(23).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS24").nombre("Resuelve problemas de regularidad, equivalencia y cambio.").activo(true).orden(24).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS25").nombre("Resuelve problemas de movimiento, forma y localización.").activo(true).orden(25).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS26").nombre("Resuelve problemas de gestión de datos e incertidumbre.").activo(true).orden(26).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS27").nombre("Indaga mediante métodos científicos para construir sus conocimientos.").activo(true).orden(27).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS28").nombre("Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía, biodiversidad, Tierra y universo.").activo(true).orden(28).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS29").nombre("Diseña y construye soluciones tecnológicas para resolver problemas de su entorno.").activo(true).orden(29).build()
+                );
+                catalogoRepo.saveAll(competenciasSecundaria);
+                log.info("{} competencias de secundaria creadas", competenciasSecundaria.size());
+                
+                // Mapeos de Competencias por Curso en SECUNDARIA
+                List<CatalogoAcademico> competenciaCursosSec = List.of(
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("DPCC").nombre("CS1,CS2").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("CIENCIAS_SOCIALES").nombre("CS3,CS4,CS5").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("EDUCACION_RELIGIOSA").nombre("CS6,CS7").activo(true).orden(3).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("EDUCACION_TRABAJO").nombre("CS8").activo(true).orden(4).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("EDUCACION_FISICA").nombre("CS9,CS10,CS11").activo(true).orden(5).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("COMUNICACION").nombre("CS12,CS13,CS14").activo(true).orden(6).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("ARTE_CULTURA").nombre("CS15,CS16").activo(true).orden(7).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("CASTELLANO_SEGUNDA_LENGUA").nombre("CS17,CS18,CS19").activo(true).orden(8).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("INGLES").nombre("CS20,CS21,CS22").activo(true).orden(9).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("MATEMATICA").nombre("CS23,CS24,CS25,CS26").activo(true).orden(10).build(),
+                        CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("CIENCIA_TECNOLOGIA").nombre("CS27,CS28,CS29").activo(true).orden(11).build()
+                );
+                catalogoRepo.saveAll(competenciaCursosSec);
+                log.info("{} mapeos curso-competencia de secundaria creados", competenciaCursosSec.size());
+            } else {
+                log.info("Áreas curriculares y competencias de SECUNDARIA ya existen");
+            }
+
+            // Crear grados de SECUNDARIA
+            boolean gradosSecExisten = catalogoRepo.findAll().stream()
+                    .anyMatch(c -> "PRIMERO_SECUNDARIA".equals(c.getCodigo()) && "SECUNDARIA".equals(c.getNivel()));
+            if (!gradosSecExisten) {
+                log.info("Iniciando creación de grados de SECUNDARIA...");
+                List<CatalogoAcademico> gradosSecundaria = List.of(
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("SECUNDARIA").codigo("PRIMERO_SECUNDARIA").nombre("Primer Grado Sec").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("SECUNDARIA").codigo("SEGUNDO_SECUNDARIA").nombre("Segundo Grado Sec").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("SECUNDARIA").codigo("TERCERO_SECUNDARIA").nombre("Tercer Grado Sec").activo(true).orden(3).build(),
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("SECUNDARIA").codigo("CUARTO_SECUNDARIA").nombre("Cuarto Grado Sec").activo(true).orden(4).build(),
+                        CatalogoAcademico.builder().tipo("GRADO").nivel("SECUNDARIA").codigo("QUINTO_SECUNDARIA").nombre("Quinto Grado Sec").activo(true).orden(5).build()
+                );
+                catalogoRepo.saveAll(gradosSecundaria);
+                log.info("{} grados de secundaria creados", gradosSecundaria.size());
+            }
+
+            // Crear secciones de SECUNDARIA
+            boolean seccionesSecExisten = catalogoRepo.findAll().stream()
+                    .anyMatch(c -> "A".equals(c.getCodigo()) && "SECCION".equals(c.getTipo()) && "SECUNDARIA".equals(c.getNivel()));
+            if (!seccionesSecExisten) {
+                log.info("Iniciando creación de secciones de SECUNDARIA...");
+                List<CatalogoAcademico> seccionesSecundaria = List.of(
+                        CatalogoAcademico.builder().tipo("SECCION").nivel("SECUNDARIA").codigo("A").nombre("Sección A").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("SECCION").nivel("SECUNDARIA").codigo("B").nombre("Sección B").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("SECCION").nivel("SECUNDARIA").codigo("C").nombre("Sección C").activo(true).orden(3).build()
+                );
+                catalogoRepo.saveAll(seccionesSecundaria);
+                log.info("{} secciones de secundaria creadas", seccionesSecundaria.size());
             }
 
             // Crear grados de PRIMARIA
@@ -300,6 +436,28 @@ public class DataInitializer {
                 log.info("{} secciones de primaria creadas", seccionesPrimaria.size());
             } else {
                 log.info("Secciones de PRIMARIA ya existen");
+            }
+
+            // Crear niveles académicos por defecto
+            boolean nivelesExisten = catalogoRepo.findAll().stream()
+                    .anyMatch(c -> "NIVEL_ACADEMICO".equals(c.getTipo()));
+            
+            if (!nivelesExisten) {
+                log.info("Iniciando creación de niveles académicos...");
+                List<CatalogoAcademico> niveles = List.of(
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("1RO_PRIM").nombre("1ro prim").activo(true).orden(1).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("2DO_PRIM").nombre("2do prim").activo(true).orden(2).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("3RO_PRIM").nombre("3ro prim").activo(true).orden(3).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("4TO_PRIM").nombre("4to prim").activo(true).orden(4).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("PREFORMATIVO").nombre("preformativo").activo(true).orden(5).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("CICLADO").nombre("ciclado").activo(true).orden(6).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("ANUAL").nombre("anual").activo(true).orden(7).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("LETRAS_CIENCIAS").nombre("Letras/Ciencias").activo(true).orden(8).build()
+                );
+                catalogoRepo.saveAll(niveles);
+                log.info("{} niveles académicos creados por defecto", niveles.size());
+            } else {
+                log.info("Niveles académicos ya existen");
             }
 
             log.info("DataInitializer completado - I.E.P. Nuestra Senora de Monserrat");
