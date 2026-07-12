@@ -182,6 +182,18 @@ public class DataInitializer {
             }
             log.info("{} docentes de primaria creados/verificados", docentesPrimaria.size());
 
+            // Asignar códigos secuenciales a docentes de PRIMARIA
+            List<UsuarioAcademico> docentesPrimariaActuales = usuarioAcademicoRepo.findAll().stream()
+                    .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) && 
+                               com.monserrat.entity.NivelEducativo.PRIMARIA.equals(u.getNivelEducativo()))
+                    .toList();
+            for (int i = 0; i < docentesPrimariaActuales.size(); i++) {
+                UsuarioAcademico docente = docentesPrimariaActuales.get(i);
+                docente.setCodigo(String.format("DOC%03d", i + 1));
+                usuarioAcademicoRepo.save(docente);
+            }
+            log.info("Códigos asignados a {} docentes de primaria", docentesPrimariaActuales.size());
+
             // Crear docentes de SECUNDARIA
             List<UsuarioAcademico> docentesSecundaria = List.of(
                     UsuarioAcademico.builder().dni("20000001").password(passwordEncoder.encode("20000001")).nombre("Adaluz Paye").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
@@ -203,6 +215,19 @@ public class DataInitializer {
                 }
             }
             log.info("{} docentes de secundaria creados/verificados", docentesSecundaria.size());
+
+            // Asignar códigos secuenciales a docentes de SECUNDARIA
+            List<UsuarioAcademico> docentesSecundariaActuales = usuarioAcademicoRepo.findAll().stream()
+                    .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) && 
+                               com.monserrat.entity.NivelEducativo.SECUNDARIA.equals(u.getNivelEducativo()))
+                    .toList();
+            int docSecStart = 14; // Comenzar desde DOC014 después de docentes primaria
+            for (int i = 0; i < docentesSecundariaActuales.size(); i++) {
+                UsuarioAcademico docente = docentesSecundariaActuales.get(i);
+                docente.setCodigo(String.format("DOC%03d", docSecStart + i));
+                usuarioAcademicoRepo.save(docente);
+            }
+            log.info("Códigos asignados a {} docentes de secundaria", docentesSecundariaActuales.size());
 
             // Crear áreas curriculares y competencias de PRIMARIA
             long countCompetenciasPrimaria = catalogoRepo.findAll().stream()
@@ -801,6 +826,68 @@ public class DataInitializer {
                 log.info("{} niveles académicos creados por defecto", niveles.size());
             } else {
                 log.info("Niveles académicos ya existen");
+            }
+
+            // Crear asignaciones automáticas basadas en los alumnos existentes y docentes
+            if (asignacionRepo.count() == 0) {
+                List<AsignacionAcademica> asignacionesDefault = new ArrayList<>();
+                
+                // Obtener todos los docentes y alumnos activos (USAR LOS ALUMNOS IMPORTADOS)
+                List<UsuarioAcademico> docentes = usuarioAcademicoRepo.findByRolAndActivoTrue(RolUsuario.DOCENTE);
+                List<UsuarioAcademico> alumnos = usuarioAcademicoRepo.findByRolAndActivoTrue(RolUsuario.ALUMNO);
+                
+                log.info("Creando asignaciones para {} alumnos existentes y {} docentes", alumnos.size(), docentes.size());
+                
+                // Por cada alumno existente, asignarle todos los docentes que tengan su grado
+                for (UsuarioAcademico alumno : alumnos) {
+                    for (UsuarioAcademico docente : docentes) {
+                        // Solo asignar si son del mismo nivel educativo
+                        if (alumno.getNivelEducativo() != null && 
+                            docente.getNivelEducativo() != null &&
+                            alumno.getNivelEducativo().equals(docente.getNivelEducativo())) {
+                            
+                            // Crear asignaciones con materias básicas
+                            List<com.monserrat.entity.CursoAcademico> materias = new ArrayList<>();
+                            if (alumno.getNivelEducativo().equals(com.monserrat.entity.NivelEducativo.PRIMARIA)) {
+                                materias = List.of(
+                                    com.monserrat.entity.CursoAcademico.PERSONAL_SOCIAL,
+                                    com.monserrat.entity.CursoAcademico.MATEMATICA,
+                                    com.monserrat.entity.CursoAcademico.COMUNICACION
+                                );
+                            } else {
+                                materias = List.of(
+                                    com.monserrat.entity.CursoAcademico.MATEMATICA,
+                                    com.monserrat.entity.CursoAcademico.COMUNICACION,
+                                    com.monserrat.entity.CursoAcademico.HISTORIA
+                                );
+                            }
+                            
+                            for (com.monserrat.entity.CursoAcademico materia : materias) {
+                                boolean yaExiste = asignacionRepo.existsByDocente_DniAndAlumno_DniAndCursoAndGradoAndSeccionAndActivoTrue(
+                                    docente.getDni(), alumno.getDni(), materia, alumno.getGrado(), alumno.getSeccion());
+                                if (!yaExiste) {
+                                    AsignacionAcademica asignacion = AsignacionAcademica.builder()
+                                            .docente(docente)
+                                            .alumno(alumno)
+                                            .curso(materia)
+                                            .nivelEducativo(alumno.getNivelEducativo())
+                                            .grado(alumno.getGrado())
+                                            .seccion(alumno.getSeccion())
+                                            .activo(true)
+                                            .build();
+                                    asignacionesDefault.add(asignacion);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (!asignacionesDefault.isEmpty()) {
+                    asignacionRepo.saveAll(asignacionesDefault);
+                    log.info("{} asignaciones automáticas creadas basadas en alumnos importados", asignacionesDefault.size());
+                } else {
+                    log.info("No se crearon asignaciones. Verifica que existan alumnos importados en la base de datos");
+                }
             }
 
             log.info("DataInitializer completado - I.E.P. Nuestra Senora de Monserrat");

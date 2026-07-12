@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -196,5 +197,11 @@ public class AcademicoController {
     @PreAuthorize("hasRole('ALUMNO')")
     public List<AsignacionAcademicaDTO> listarAsignacionesAlumno(Authentication authentication) {
         return academicoService.listarAsignacionesAlumno(authentication.getName());
+    }
+
+    @PostMapping("/importar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ImportacionResultDTO> importarUsuarios(@RequestParam("file") MultipartFile file, @RequestParam String tipo) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(academicoService.importarUsuariosDesdeArchivo(file, tipo));
     }
 }

@@ -12,6 +12,7 @@ import com.monserrat.entity.NivelEducativo;
 import com.monserrat.entity.NotaAcademica;
 import com.monserrat.entity.PensionMensual;
 import com.monserrat.entity.RolUsuario;
+import com.monserrat.entity.Seccion;
 import com.monserrat.entity.UsuarioAcademico;
 import com.monserrat.repository.AsignacionAcademicaRepository;
 import com.monserrat.repository.AsistenciaAcademicaRepository;
@@ -34,6 +35,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +47,7 @@ public class AcademicoService {
     private final NotaAcademicaRepository notaRepository;
     private final PensionMensualRepository pensionMensualRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.monserrat.repository.CatalogoAcademicoRepository catalogoRepository;
 
     public List<UsuarioAcademicoDTO> listarUsuarios() {
         return usuarioRepository.findAll().stream().map(this::toUsuarioDto).toList();
@@ -70,6 +73,85 @@ public class AcademicoService {
                 .toList();
     }
 
+    /**
+     * Genera automáticamente un código único para alumno o docente
+     * Alumnos: {año_inicio_período}{3_dígitos}{1_letra} (ej: 2025453E)
+     * Docentes: DOC{3_dígitos} (ej: DOC234)
+     */
+    private String generarCodigoAutomatico(RolUsuario rol, LocalDateTime inicioPeriodo) {
+        if (RolUsuario.ALUMNO.equals(rol)) {
+            // Para alumnos: formato {año}{3_dígitos}{1_letra}
+            int año = inicioPeriodo != null ? inicioPeriodo.getYear() : LocalDateTime.now().getYear();
+            
+            // Obtener el número secuencial más alto para alumnos de este año
+            List<UsuarioAcademico> alumnosAño = usuarioRepository.findAll().stream()
+                    .filter(u -> RolUsuario.ALUMNO.equals(u.getRol()) && u.getCodigo() != null && u.getCodigo().startsWith(String.valueOf(año)))
+                    .collect(Collectors.toList());
+            
+            int numSecuencial = 1;
+            char letra = 'A';
+            
+            if (!alumnosAño.isEmpty()) {
+                // Extraer el número máximo existente
+                for (UsuarioAcademico a : alumnosAño) {
+                    String cod = a.getCodigo();
+                    if (cod.length() >= 8) {
+                        try {
+                            int num = Integer.parseInt(cod.substring(4, 7));
+                            char let = cod.charAt(7);
+                            if (num >= numSecuencial || (num == numSecuencial && let >= letra)) {
+                                numSecuencial = num;
+                                letra = let;
+                            }
+                        } catch (Exception e) {
+                            // Ignorar códigos mal formados
+                        }
+                    }
+                }
+                
+                // Incrementar
+                numSecuencial++;
+                if (numSecuencial > 999) {
+                    numSecuencial = 1;
+                    letra = (char) (((letra - 'A' + 1) % 26) + 'A');
+                }
+            }
+            
+            return String.format("%d%03d%c", año, numSecuencial, letra);
+        } else if (RolUsuario.DOCENTE.equals(rol)) {
+            // Para docentes: DOC{3_dígitos}
+            List<UsuarioAcademico> docentes = usuarioRepository.findAll().stream()
+                    .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) && u.getCodigo() != null && u.getCodigo().startsWith("DOC"))
+                    .sorted(Comparator.comparing(u -> u.getCodigo(), (c1, c2) -> {
+                        try {
+                            int n1 = Integer.parseInt(c1.substring(3));
+                            int n2 = Integer.parseInt(c2.substring(3));
+                            return Integer.compare(n2, n1); // Orden descendente
+                        } catch (Exception e) {
+                            return 0;
+                        }
+                    }))
+                    .toList();
+            
+            int numDocente = 1;
+            if (!docentes.isEmpty()) {
+                try {
+                    numDocente = Integer.parseInt(docentes.get(0).getCodigo().substring(3)) + 1;
+                } catch (Exception e) {
+                    numDocente = 1;
+                }
+            }
+            
+            if (numDocente > 999) {
+                numDocente = 1;
+            }
+            
+            return String.format("DOC%03d", numDocente);
+        }
+        
+        return null;
+    }
+
     public UsuarioAcademicoDTO crearUsuario(CreateUsuarioAcademicoRequest request) {
         RolUsuario rol = request.getRol() == null ? RolUsuario.ALUMNO : request.getRol();
         if (RolUsuario.ADMIN.equals(rol)) {
@@ -77,11 +159,18 @@ public class AcademicoService {
                     "El administrador se gestiona desde la tabla de administradores");
         }
         validarDatosAcademicos(rol, request.getNivelEducativo(), request.getGrado());
-        validarDatosUnicos(null, request.getDni(), request.getCodigo(), request.getCorreo());
+        
+        // Generar código automático si no se proporciona
+        String codigoFinal = request.getCodigo();
+        if (codigoFinal == null || codigoFinal.isBlank()) {
+            codigoFinal = generarCodigoAutomatico(rol, request.getInicioPeriodo());
+        }
+        
+        validarDatosUnicos(null, request.getDni(), codigoFinal, request.getCorreo());
 
         UsuarioAcademico usuario = UsuarioAcademico.builder()
                 .dni(request.getDni())
-                .codigo(request.getCodigo())
+                .codigo(codigoFinal)
                 .password(passwordEncoder.encode(request.getDni()))
                 .nombre(request.getNombre())
                 .nombres(request.getNombres())
@@ -108,13 +197,33 @@ public class AcademicoService {
                 .activo(true)
                 .build();
 
-        return toUsuarioDto(usuarioRepository.save(usuario));
+        UsuarioAcademico saved = usuarioRepository.save(usuario);
+        if (RolUsuario.ALUMNO.equals(saved.getRol()) && saved.getNivelEducativo() != null && saved.getGrado() != null && saved.getSeccion() != null) {
+            replicarAsignacionesDeAulaParaAlumno(saved);
+        }
+        return toUsuarioDto(saved);
     }
 
+    @Transactional
     public UsuarioAcademicoDTO actualizarUsuario(Long id, UpdatePerfilAcademicoRequest request) {
         UsuarioAcademico usuario = buscarPorId(id);
+        NivelEducativo nivelAnt = usuario.getNivelEducativo();
+        Grado gradoAnt = usuario.getGrado();
+        com.monserrat.entity.Seccion seccionAnt = usuario.getSeccion();
+
         aplicarPerfil(usuario, request, true);
-        return toUsuarioDto(usuarioRepository.save(usuario));
+        UsuarioAcademico saved = usuarioRepository.save(usuario);
+
+        if (RolUsuario.ALUMNO.equals(saved.getRol())) {
+            boolean cambioAula = nivelAnt != saved.getNivelEducativo() || gradoAnt != saved.getGrado() || seccionAnt != saved.getSeccion();
+            if (cambioAula) {
+                asignacionRepository.deleteByAlumno_Dni(saved.getDni());
+                if (saved.getNivelEducativo() != null && saved.getGrado() != null && saved.getSeccion() != null) {
+                    replicarAsignacionesDeAulaParaAlumno(saved);
+                }
+            }
+        }
+        return toUsuarioDto(saved);
     }
 
     @Transactional
@@ -274,6 +383,18 @@ public class AcademicoService {
     @Transactional(readOnly = true)
     public List<AsignacionAcademicaDTO> listarAsignaciones() {
         return asignacionRepository.findByActivoTrue().stream()
+                .peek(a -> {
+                    // Asegurar que grado y sección se obtengan del alumno si están nulos en la asignación
+                    if (a.getGrado() == null && a.getAlumno() != null) {
+                        a.setGrado(a.getAlumno().getGrado());
+                    }
+                    if (a.getSeccion() == null && a.getAlumno() != null) {
+                        a.setSeccion(a.getAlumno().getSeccion());
+                    }
+                    if (a.getNivelEducativo() == null && a.getAlumno() != null) {
+                        a.setNivelEducativo(a.getAlumno().getNivelEducativo());
+                    }
+                })
                 .sorted(Comparator
                         .comparing((AsignacionAcademica a) -> a.getCurso().name(), String.CASE_INSENSITIVE_ORDER)
                         .thenComparing(a -> a.getDocente().getNombre(), String.CASE_INSENSITIVE_ORDER)
@@ -285,6 +406,18 @@ public class AcademicoService {
     @Transactional(readOnly = true)
     public List<AsignacionAcademicaDTO> listarAsignacionesDocente(String docenteDni) {
         return asignacionRepository.findByDocente_DniAndActivoTrue(docenteDni).stream()
+                .peek(a -> {
+                    // Asegurar que grado y sección se obtengan del alumno si están nulos en la asignación
+                    if (a.getGrado() == null && a.getAlumno() != null) {
+                        a.setGrado(a.getAlumno().getGrado());
+                    }
+                    if (a.getSeccion() == null && a.getAlumno() != null) {
+                        a.setSeccion(a.getAlumno().getSeccion());
+                    }
+                    if (a.getNivelEducativo() == null && a.getAlumno() != null) {
+                        a.setNivelEducativo(a.getAlumno().getNivelEducativo());
+                    }
+                })
                 .sorted(Comparator
                         .comparing((AsignacionAcademica a) -> a.getCurso().name(), String.CASE_INSENSITIVE_ORDER)
                         .thenComparing(a -> a.getAlumno().getNombre(), String.CASE_INSENSITIVE_ORDER))
@@ -295,6 +428,18 @@ public class AcademicoService {
     @Transactional(readOnly = true)
     public List<AsignacionAcademicaDTO> listarAsignacionesAlumno(String alumnoDni) {
         return asignacionRepository.findByAlumno_DniAndActivoTrue(alumnoDni).stream()
+                .peek(a -> {
+                    // Asegurar que grado y sección se obtengan del alumno si están nulos en la asignación
+                    if (a.getGrado() == null && a.getAlumno() != null) {
+                        a.setGrado(a.getAlumno().getGrado());
+                    }
+                    if (a.getSeccion() == null && a.getAlumno() != null) {
+                        a.setSeccion(a.getAlumno().getSeccion());
+                    }
+                    if (a.getNivelEducativo() == null && a.getAlumno() != null) {
+                        a.setNivelEducativo(a.getAlumno().getNivelEducativo());
+                    }
+                })
                 .sorted(Comparator
                         .comparing((AsignacionAcademica a) -> a.getCurso().name(), String.CASE_INSENSITIVE_ORDER)
                         .thenComparing(a -> a.getDocente().getNombre(), String.CASE_INSENSITIVE_ORDER))
@@ -842,5 +987,238 @@ public class AcademicoService {
                 .createdAt(asignacion.getCreatedAt())
                 .updatedAt(asignacion.getUpdatedAt())
                 .build();
+    }
+    private void replicarAsignacionesDeAulaParaAlumno(UsuarioAcademico alumno) {
+        // 1. Replicar desde docentes por competencia en el catálogo (fuente de verdad autoritativa)
+        if (alumno.getGrado() != null) {
+            String gradePrefix = alumno.getGrado().name() + "||";
+            java.util.List<com.monserrat.entity.CatalogoAcademico> mappings = catalogoRepository.findAll();
+            
+            java.util.Map<CursoAcademico, String> cursoDocenteDniMap = new java.util.HashMap<>();
+            for (com.monserrat.entity.CatalogoAcademico mapping : mappings) {
+                if ("DOCENTE_COMPETENCIA".equals(mapping.getTipo()) && 
+                    Boolean.TRUE.equals(mapping.getActivo()) && 
+                    mapping.getCodigo() != null && 
+                    mapping.getCodigo().startsWith(gradePrefix)) {
+                    
+                    String[] parts = mapping.getCodigo().split("\\|\\|");
+                    if (parts.length >= 2) {
+                        try {
+                            CursoAcademico curso = CursoAcademico.valueOf(parts[1]);
+                            String docenteDni = mapping.getNombre();
+                            if (docenteDni != null && !docenteDni.isBlank()) {
+                                cursoDocenteDniMap.put(curso, docenteDni);
+                            }
+                        } catch (IllegalArgumentException e) {
+                            // Ignorar si el curso no es válido en el enum
+                        }
+                    }
+                }
+            }
+
+            // Crear asignaciones del catálogo
+            for (java.util.Map.Entry<CursoAcademico, String> entry : cursoDocenteDniMap.entrySet()) {
+                UsuarioAcademico docente = usuarioRepository.findByDni(entry.getValue()).orElse(null);
+                if (docente != null) {
+                    boolean yaExiste = asignacionRepository.existsByDocente_DniAndAlumno_DniAndCursoAndGradoAndSeccionAndActivoTrue(
+                            docente.getDni(), alumno.getDni(), entry.getKey(), alumno.getGrado(), alumno.getSeccion());
+                    if (!yaExiste) {
+                        AsignacionAcademica nuevaAsignacion = AsignacionAcademica.builder()
+                                .docente(docente)
+                                .alumno(alumno)
+                                .curso(entry.getKey())
+                                .nivelEducativo(alumno.getNivelEducativo())
+                                .grado(alumno.getGrado())
+                                .seccion(alumno.getSeccion())
+                                .activo(true)
+                                .build();
+                        asignacionRepository.save(nuevaAsignacion);
+                    }
+                }
+            }
+        }
+
+        // 2. Replicar desde asignaciones de aula existentes (como fallback secundario)
+        List<AsignacionAcademica> asignacionesExistentes = asignacionRepository
+                .findByNivelEducativoAndGradoAndSeccionAndActivoTrue(
+                        alumno.getNivelEducativo(), alumno.getGrado(), alumno.getSeccion());
+
+        java.util.Map<CursoAcademico, UsuarioAcademico> cursoDocenteMap = new java.util.HashMap<>();
+        for (AsignacionAcademica asig : asignacionesExistentes) {
+            cursoDocenteMap.put(asig.getCurso(), asig.getDocente());
+        }
+
+        for (java.util.Map.Entry<CursoAcademico, UsuarioAcademico> entry : cursoDocenteMap.entrySet()) {
+            boolean yaExiste = asignacionRepository.existsByDocente_DniAndAlumno_DniAndCursoAndGradoAndSeccionAndActivoTrue(
+                    entry.getValue().getDni(), alumno.getDni(), entry.getKey(), alumno.getGrado(), alumno.getSeccion());
+            if (!yaExiste) {
+                AsignacionAcademica nuevaAsignacion = AsignacionAcademica.builder()
+                        .docente(entry.getValue())
+                        .alumno(alumno)
+                        .curso(entry.getKey())
+                        .nivelEducativo(alumno.getNivelEducativo())
+                        .grado(alumno.getGrado())
+                        .seccion(alumno.getSeccion())
+                        .activo(true)
+                        .build();
+                asignacionRepository.save(nuevaAsignacion);
+            }
+        }
+    }
+
+    @Transactional
+    public ImportacionResultDTO importarUsuariosDesdeArchivo(org.springframework.web.multipart.MultipartFile file, String tipo) {
+        List<String> errores = new ArrayList<>();
+        int totalProcesados = 0;
+        int exitosos = 0;
+        int fallidos = 0;
+
+        try {
+            org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook(file.getInputStream());
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(0);
+
+            RolUsuario rol = "ALUMNO".equalsIgnoreCase(tipo) ? RolUsuario.ALUMNO : RolUsuario.DOCENTE;
+
+            for (int i = 1; i < sheet.getPhysicalNumberOfRows(); i++) {
+                org.apache.poi.ss.usermodel.Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                totalProcesados++;
+
+                try {
+                    // Leer valores del Excel - ajustado para formato del usuario
+                    String nivel = getCellValue(row, 0).trim();              // Primaria/Secundaria
+                    String nivelAcademico = getCellValue(row, 1).trim();    // Nivel académico o ignorar
+                    String gradoStr = getCellValue(row, 2).trim();          // Grado
+                    String inicioPeriodoStr = getCellValue(row, 3).trim();  // Fecha inicio
+                    String nombreCompleto = getCellValue(row, 4).trim();    // Nombre del alumno
+
+                    // Validaciones
+                    if (nombreCompleto.isBlank()) {
+                        errores.add("Fila " + (i + 1) + ": Nombre del alumno es requerido");
+                        fallidos++;
+                        continue;
+                    }
+
+                    // Parsear nombre completo para extraer DNI o generar valores
+                    String[] partes = nombreCompleto.split("\\s+");
+                    String apellidos = partes.length >= 2 ? String.join(" ", Arrays.copyOfRange(partes, 0, partes.length - 1)) : "";
+                    String nombre = partes.length > 0 ? partes[partes.length - 1] : "";
+                    
+                    // Para el DNI en importación, usar hash del nombre como temporal
+                    String dni = String.valueOf((nombreCompleto + nivel + gradoStr).hashCode()).replace("-", "").substring(0, 8);
+                    
+                    // Validar que no exista usuario con mismo nombre+nivel+grado
+                    if (usuarioRepository.findAll().stream()
+                            .anyMatch(u -> u.getNombre().equalsIgnoreCase(nombreCompleto) && 
+                                         u.getNivelEducativo().name().equalsIgnoreCase(nivel.toUpperCase()))) {
+                        errores.add("Fila " + (i + 1) + ": " + nombreCompleto + " ya existe en el sistema");
+                        fallidos++;
+                        continue;
+                    }
+
+                    // Convertir nivel educativo
+                    NivelEducativo nivelEducativo;
+                    try {
+                        nivelEducativo = NivelEducativo.valueOf(nivel.toUpperCase().replace(" ", "_"));
+                    } catch (IllegalArgumentException e) {
+                        errores.add("Fila " + (i + 1) + ": Nivel educativo inválido: " + nivel);
+                        fallidos++;
+                        continue;
+                    }
+
+                    // Convertir grado
+                    Grado grado;
+                    try {
+                        grado = Grado.valueOf(gradoStr.toUpperCase().replace(" ", "_"));
+                    } catch (IllegalArgumentException e) {
+                        errores.add("Fila " + (i + 1) + ": Grado inválido: " + gradoStr);
+                        fallidos++;
+                        continue;
+                    }
+
+                    // Parsear fecha de inicio del período
+                    LocalDateTime fechaInicio = LocalDateTime.now();
+                    if (!inicioPeriodoStr.isBlank()) {
+                        try {
+                            // Intentar parsear formato dd/MM/yyyy
+                            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                            LocalDate fecha = LocalDate.parse(inicioPeriodoStr, formatter);
+                            fechaInicio = fecha.atStartOfDay();
+                        } catch (Exception parseError) {
+                            // Si falla, usar la fecha actual
+                            fechaInicio = LocalDateTime.now();
+                        }
+                    }
+
+                    // Generar código automático con la fecha del período
+                    String codigoGenerado = generarCodigoAutomatico(rol, fechaInicio);
+
+                    // Crear usuario
+                    UsuarioAcademico usuario = UsuarioAcademico.builder()
+                            .dni(dni)
+                            .codigo(codigoGenerado)
+                            .nombre(nombreCompleto)
+                            .apellidos(apellidos)
+                            .correo(nombreCompleto.toLowerCase().replace(" ", ".") + "@importado.edu")
+                            .rol(rol)
+                            .nivelEducativo(nivelEducativo)
+                            .grado(grado)
+                            .seccion(Seccion.A)  // Asignar sección A por defecto
+                            .estado(EstadoUsuario.ACTIVO)
+                            .activo(true)
+                            .password(passwordEncoder.encode("123456")) // Contraseña por defecto
+                            .debeCambiarContrasena(true)
+                            .build();
+
+                    usuarioRepository.save(usuario);
+                    exitosos++;
+
+                } catch (Exception e) {
+                    errores.add("Fila " + (i + 1) + ": " + e.getMessage());
+                    fallidos++;
+                }
+            }
+
+            workbook.close();
+
+        } catch (Exception e) {
+            return ImportacionResultDTO.builder()
+                    .totalProcesados(0)
+                    .exitosos(0)
+                    .fallidos(1)
+                    .errores(Arrays.asList("Error al procesar archivo: " + e.getMessage()))
+                    .mensaje("FALLO")
+                    .build();
+        }
+
+        return ImportacionResultDTO.builder()
+                .totalProcesados(totalProcesados)
+                .exitosos(exitosos)
+                .fallidos(fallidos)
+                .errores(errores)
+                .mensaje(exitosos > 0 ? "EXITOSO" : "FALLO")
+                .build();
+    }
+
+    private String getCellValue(org.apache.poi.ss.usermodel.Row row, int cellIndex) {
+        org.apache.poi.ss.usermodel.Cell cell = row.getCell(cellIndex);
+        if (cell == null) return "";
+
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                // Verificar si es una fecha
+                if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)) {
+                    java.time.LocalDateTime dateTime = cell.getLocalDateTimeCellValue();
+                    return dateTime.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                }
+                return String.valueOf((int) cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            default:
+                return "";
+        }
     }
 }
