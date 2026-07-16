@@ -11,13 +11,16 @@ import com.monserrat.entity.Grado;
 import com.monserrat.entity.NivelEducativo;
 import com.monserrat.entity.NotaAcademica;
 import com.monserrat.entity.PensionMensual;
+import com.monserrat.entity.PeriodoBimestre;
 import com.monserrat.entity.RolUsuario;
 import com.monserrat.entity.Seccion;
 import com.monserrat.entity.UsuarioAcademico;
+import com.monserrat.service.AcademicoServiceHelper;
 import com.monserrat.repository.AsignacionAcademicaRepository;
 import com.monserrat.repository.AsistenciaAcademicaRepository;
 import com.monserrat.repository.NotaAcademicaRepository;
 import com.monserrat.repository.PensionMensualRepository;
+import com.monserrat.repository.PeriodoBimestreRepository;
 import com.monserrat.repository.UsuarioAcademicoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -46,6 +49,7 @@ public class AcademicoService {
     private final AsistenciaAcademicaRepository asistenciaRepository;
     private final NotaAcademicaRepository notaRepository;
     private final PensionMensualRepository pensionMensualRepository;
+    private final PeriodoBimestreRepository periodoBimestreRepository;
     private final PasswordEncoder passwordEncoder;
     private final com.monserrat.repository.CatalogoAcademicoRepository catalogoRepository;
 
@@ -616,6 +620,92 @@ public class AcademicoService {
         return toPensionMensualDto(alumno, request.getAnio(), request.getMes(), saved, true);
     }
 
+    // ============ MÉTODOS PARA GESTIÓN DE PERÍODOS BIMESTRALES ============
+
+    @Transactional(readOnly = true)
+    public List<PeriodoBimestreDTO> listarPeriodosBimestres(Integer anio) {
+        if (anio == null) {
+            anio = java.time.Year.now().getValue();
+        }
+        return periodoBimestreRepository.findByAnioOrderByNumeroBimestreAsc(anio).stream()
+                .map(this::toPeriodoBimestreDto)
+                .toList();
+    }
+
+    @Transactional
+    public PeriodoBimestreDTO crearPeriodoBimestre(PeriodoBimestreRequest request) {
+        // Validación: fechaInicio < fechaFin
+        if (request.getFechaInicio().isAfter(request.getFechaFin())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
+
+        // Validación: no duplicar números de bimestre para el mismo año
+        periodoBimestreRepository.findByAnioAndNumeroBimestre(request.getAnio(), request.getNumeroBimestre())
+                .ifPresent(existing -> {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Ya existe un bimestre " + request.getNumeroBimestre() + " para el año " + request.getAnio());
+                });
+
+        PeriodoBimestre periodo = PeriodoBimestre.builder()
+                .anio(request.getAnio())
+                .numeroBimestre(request.getNumeroBimestre())
+                .fechaInicio(request.getFechaInicio())
+                .fechaFin(request.getFechaFin())
+                .build();
+        
+        PeriodoBimestre saved = periodoBimestreRepository.save(periodo);
+        return toPeriodoBimestreDto(saved);
+    }
+
+    @Transactional
+    public PeriodoBimestreDTO actualizarPeriodoBimestre(Long id, PeriodoBimestreRequest request) {
+        PeriodoBimestre periodo = periodoBimestreRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Período no encontrado"));
+
+        // Validación: fechaInicio < fechaFin
+        if (request.getFechaInicio().isAfter(request.getFechaFin())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
+
+        // Validación: no duplicar números de bimestre (excepto para el mismo ID)
+        periodoBimestreRepository.findByAnioAndNumeroBimestre(request.getAnio(), request.getNumeroBimestre())
+                .ifPresent(existing -> {
+                    if (!existing.getId().equals(id)) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                                "Ya existe un bimestre " + request.getNumeroBimestre() + " para el año " + request.getAnio());
+                    }
+                });
+
+        periodo.setAnio(request.getAnio());
+        periodo.setNumeroBimestre(request.getNumeroBimestre());
+        periodo.setFechaInicio(request.getFechaInicio());
+        periodo.setFechaFin(request.getFechaFin());
+        
+        PeriodoBimestre updated = periodoBimestreRepository.save(periodo);
+        return toPeriodoBimestreDto(updated);
+    }
+
+    @Transactional
+    public void eliminarPeriodoBimestre(Long id) {
+        PeriodoBimestre periodo = periodoBimestreRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Período no encontrado"));
+        periodoBimestreRepository.deleteById(id);
+    }
+
+    private PeriodoBimestreDTO toPeriodoBimestreDto(PeriodoBimestre periodo) {
+        return PeriodoBimestreDTO.builder()
+                .id(periodo.getId())
+                .anio(periodo.getAnio())
+                .numeroBimestre(periodo.getNumeroBimestre())
+                .fechaInicio(periodo.getFechaInicio())
+                .fechaFin(periodo.getFechaFin())
+                .createdAt(periodo.getCreatedAt())
+                .updatedAt(periodo.getUpdatedAt())
+                .build();
+    }
+
     private UsuarioAcademico buscarPorId(Long id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -820,6 +910,18 @@ public class AcademicoService {
     }
 
     private List<Integer> mesesDePensionParaAnio(UsuarioAcademico alumno, int anio) {
+        // Intenta obtener los períodos configurados para el año
+        List<PeriodoBimestre> periodos = periodoBimestreRepository.findByAnioOrderByNumeroBimestreAsc(anio);
+        
+        if (!periodos.isEmpty()) {
+            // Si hay períodos configurados, usa esos
+            return java.util.stream.IntStream.rangeClosed(1, 12)
+                    .filter(mes -> esMesPensionActivaConPeriodo(alumno, anio, mes, periodos))
+                    .boxed()
+                    .toList();
+        }
+
+        // Si no hay períodos, usa el método tradicional basado en createdAt/inicioPeriodo
         LocalDateTime createdAt = alumno.getCreatedAt();
         if (createdAt == null) {
             return java.util.stream.IntStream.rangeClosed(1, 12).boxed().toList();
@@ -829,6 +931,30 @@ public class AcademicoService {
                 .filter(mes -> esMesPensionActiva(createdAt, anio, mes, LocalDate.now()))
                 .boxed()
                 .toList();
+    }
+
+    private boolean esMesPensionActivaConPeriodo(UsuarioAcademico alumno, int anio, int mes, List<PeriodoBimestre> periodos) {
+        LocalDate fechaVerificacion = LocalDate.of(anio, mes, 1);
+        LocalDate hoy = LocalDate.now();
+        LocalDate fechaInicioAlumno = getInicioPeriodoLocalDate(alumno);
+
+        if (fechaInicioAlumno != null && fechaVerificacion.isBefore(fechaInicioAlumno.withDayOfMonth(1))) {
+            return false;
+        }
+
+        // El mes debe estar en un rango de período y no debe ser futuro
+        for (PeriodoBimestre periodo : periodos) {
+            if (!fechaVerificacion.isBefore(periodo.getFechaInicio())
+                    && !fechaVerificacion.isAfter(periodo.getFechaFin())) {
+                return !fechaVerificacion.isAfter(hoy);
+            }
+        }
+        return false;
+    }
+
+    private LocalDate getInicioPeriodoLocalDate(UsuarioAcademico alumno) {
+        LocalDateTime inicioPeriodo = alumno.getInicioPeriodo() != null ? alumno.getInicioPeriodo() : alumno.getCreatedAt();
+        return inicioPeriodo == null ? null : inicioPeriodo.toLocalDate();
     }
 
     static boolean esMesPensionActiva(LocalDateTime fechaInicioPeriodo, int anio, int mes, LocalDate fechaReferencia) {
@@ -851,6 +977,15 @@ public class AcademicoService {
     }
 
     private boolean mesPensionActiva(UsuarioAcademico alumno, int anio, int mes) {
+        // Intenta obtener los períodos configurados
+        List<PeriodoBimestre> periodos = periodoBimestreRepository.findByAnioOrderByNumeroBimestreAsc(anio);
+        
+        if (!periodos.isEmpty()) {
+            // Si hay períodos configurados, usa esos y también respeta el inicio del alumno
+            return esMesPensionActivaConPeriodo(alumno, anio, mes, periodos);
+        }
+
+        // Si no hay períodos, usa el método tradicional
         LocalDateTime fecha = alumno.getInicioPeriodo() != null
                 ? alumno.getInicioPeriodo()
                 : alumno.getCreatedAt();
@@ -1128,17 +1263,15 @@ public class AcademicoService {
                     }
 
                     // Convertir grado
-                    Grado grado;
-                    try {
-                        grado = Grado.valueOf(gradoStr.toUpperCase().replace(" ", "_"));
-                    } catch (IllegalArgumentException e) {
+                    Grado grado = AcademicoServiceHelper.parseGrado(gradoStr, nivelEducativo);
+                    if (grado == null) {
                         errores.add("Fila " + (i + 1) + ": Grado inválido: " + gradoStr);
                         fallidos++;
                         continue;
                     }
 
                     // Parsear fecha de inicio del período
-                    LocalDateTime fechaInicio = LocalDateTime.now();
+                    LocalDateTime fechaInicio = null;
                     if (!inicioPeriodoStr.isBlank()) {
                         try {
                             // Intentar parsear formato dd/MM/yyyy
@@ -1146,12 +1279,12 @@ public class AcademicoService {
                             LocalDate fecha = LocalDate.parse(inicioPeriodoStr, formatter);
                             fechaInicio = fecha.atStartOfDay();
                         } catch (Exception parseError) {
-                            // Si falla, usar la fecha actual
-                            fechaInicio = LocalDateTime.now();
+                            // Si falla el parseo, dejar inicioPeriodo como null
+                            fechaInicio = null;
                         }
                     }
 
-                    // Generar código automático con la fecha del período
+                    // Generar código automático con la fecha del período (o fecha actual si no existe)
                     String codigoGenerado = generarCodigoAutomatico(rol, fechaInicio);
 
                     // Crear usuario
@@ -1169,6 +1302,7 @@ public class AcademicoService {
                             .activo(true)
                             .password(passwordEncoder.encode("123456")) // Contraseña por defecto
                             .debeCambiarContrasena(true)
+                            .inicioPeriodo(fechaInicio)
                             .build();
 
                     usuarioRepository.save(usuario);

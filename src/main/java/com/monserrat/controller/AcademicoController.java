@@ -204,4 +204,31 @@ public class AcademicoController {
     public ResponseEntity<ImportacionResultDTO> importarUsuarios(@RequestParam("file") MultipartFile file, @RequestParam String tipo) {
         return ResponseEntity.status(HttpStatus.CREATED).body(academicoService.importarUsuariosDesdeArchivo(file, tipo));
     }
+
+    // ============ ENDPOINTS PARA GESTIÓN DE PERÍODOS BIMESTRALES ============
+
+    @GetMapping("/periodos-bimestres")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ALUMNO', 'DOCENTE')")
+    public List<PeriodoBimestreDTO> listarPeriodosBimestres(@RequestParam(required = false) Integer anio) {
+        return academicoService.listarPeriodosBimestres(anio);
+    }
+
+    @PostMapping("/periodos-bimestres")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<PeriodoBimestreDTO> crearPeriodoBimestre(@Valid @RequestBody PeriodoBimestreRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(academicoService.crearPeriodoBimestre(request));
+    }
+
+    @PutMapping("/periodos-bimestres/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public PeriodoBimestreDTO actualizarPeriodoBimestre(@PathVariable Long id, @Valid @RequestBody PeriodoBimestreRequest request) {
+        return academicoService.actualizarPeriodoBimestre(id, request);
+    }
+
+    @DeleteMapping("/periodos-bimestres/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> eliminarPeriodoBimestre(@PathVariable Long id) {
+        academicoService.eliminarPeriodoBimestre(id);
+        return ResponseEntity.noContent().build();
+    }
 }
