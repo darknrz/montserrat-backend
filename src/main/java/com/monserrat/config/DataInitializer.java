@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
@@ -182,15 +183,19 @@ public class DataInitializer {
             }
             log.info("{} docentes de primaria creados/verificados", docentesPrimaria.size());
 
-            // Asignar códigos secuenciales a docentes de PRIMARIA
+            // Asignar códigos secuenciales a docentes de PRIMARIA (solo a los que no tienen código aún)
             List<UsuarioAcademico> docentesPrimariaActuales = usuarioAcademicoRepo.findAll().stream()
-                    .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) && 
-                               com.monserrat.entity.NivelEducativo.PRIMARIA.equals(u.getNivelEducativo()))
+                    .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) &&
+                            com.monserrat.entity.NivelEducativo.PRIMARIA.equals(u.getNivelEducativo()))
+                    .sorted(Comparator.comparing(UsuarioAcademico::getDni))
                     .toList();
-            for (int i = 0; i < docentesPrimariaActuales.size(); i++) {
-                UsuarioAcademico docente = docentesPrimariaActuales.get(i);
-                docente.setCodigo(String.format("DOC%03d", i + 1));
-                usuarioAcademicoRepo.save(docente);
+            int numeroPrimaria = 1;
+            for (UsuarioAcademico docente : docentesPrimariaActuales) {
+                if (docente.getCodigo() == null || docente.getCodigo().isBlank()) {
+                    docente.setCodigo(String.format("DOC%03d", numeroPrimaria));
+                    usuarioAcademicoRepo.save(docente);
+                }
+                numeroPrimaria++;
             }
             log.info("Códigos asignados a {} docentes de primaria", docentesPrimariaActuales.size());
 
@@ -218,8 +223,8 @@ public class DataInitializer {
 
             // Asignar códigos secuenciales a docentes de SECUNDARIA
             List<UsuarioAcademico> docentesSecundariaActuales = usuarioAcademicoRepo.findAll().stream()
-                    .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) && 
-                               com.monserrat.entity.NivelEducativo.SECUNDARIA.equals(u.getNivelEducativo()))
+                    .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) &&
+                            com.monserrat.entity.NivelEducativo.SECUNDARIA.equals(u.getNivelEducativo()))
                     .toList();
             int docSecStart = 14; // Comenzar desde DOC014 después de docentes primaria
             for (int i = 0; i < docentesSecundariaActuales.size(); i++) {

@@ -5,7 +5,6 @@ import com.monserrat.entity.EstadoUsuario;
 import com.monserrat.entity.Grado;
 import com.monserrat.entity.NivelEducativo;
 import com.monserrat.entity.Seccion;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Email;
 import lombok.Data;
 
@@ -14,7 +13,6 @@ import java.time.LocalDateTime;
 
 @Data
 public class UpdatePerfilAcademicoRequest {
-    @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
 
     private String codigo;

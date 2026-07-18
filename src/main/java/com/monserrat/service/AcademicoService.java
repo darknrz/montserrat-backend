@@ -744,27 +744,59 @@ public class AcademicoService {
             validarDatosUnicos(usuario.getId(), usuario.getDni(), request.getCodigo(), request.getCorreo());
         }
 
-        usuario.setNombre(request.getNombre());
-        usuario.setNombres(request.getNombres());
-        usuario.setApellidos(request.getApellidos());
-        usuario.setCorreo(request.getCorreo());
-        usuario.setDireccion(request.getDireccion());
-        usuario.setFechaNacimiento(request.getFechaNacimiento());
-        usuario.setTelefono(request.getTelefono());
-        usuario.setFotoUrl(request.getFotoUrl());
+        if (request.getNombre() != null) {
+            usuario.setNombre(request.getNombre());
+        }
+        if (request.getNombres() != null) {
+            usuario.setNombres(request.getNombres());
+        }
+        if (request.getApellidos() != null) {
+            usuario.setApellidos(request.getApellidos());
+        }
+        if (request.getCorreo() != null) {
+            usuario.setCorreo(request.getCorreo());
+        }
+        if (request.getDireccion() != null) {
+            usuario.setDireccion(request.getDireccion());
+        }
+        if (request.getFechaNacimiento() != null) {
+            usuario.setFechaNacimiento(request.getFechaNacimiento());
+        }
+        if (request.getTelefono() != null) {
+            usuario.setTelefono(request.getTelefono());
+        }
+        if (request.getFotoUrl() != null) {
+            usuario.setFotoUrl(request.getFotoUrl());
+        }
 
         if (adminEdita) {
             validarDatosAcademicos(usuario.getRol(), request.getNivelEducativo(), request.getGrado());
-            usuario.setCodigo(request.getCodigo());
-            usuario.setNivelEducativo(request.getNivelEducativo());
-            usuario.setGrado(request.getGrado());
-            usuario.setSeccion(request.getSeccion());
-            usuario.setEstadoMatricula(request.getEstadoMatricula());
+            if (request.getCodigo() != null) {
+                usuario.setCodigo(request.getCodigo());
+            }
+            if (request.getNivelEducativo() != null) {
+                usuario.setNivelEducativo(request.getNivelEducativo());
+            }
+            if (request.getGrado() != null) {
+                usuario.setGrado(request.getGrado());
+            }
+            if (request.getSeccion() != null) {
+                usuario.setSeccion(request.getSeccion());
+            }
+            if (request.getEstadoMatricula() != null) {
+                usuario.setEstadoMatricula(request.getEstadoMatricula());
+            }
         }
         if (adminEdita || RolUsuario.DOCENTE.equals(usuario.getRol())) {
-            usuario.setCodigo(request.getCodigo());
-            usuario.setMateria(request.getMateria());
-            usuario.setEspecialidad(request.getEspecialidad());
+            if (request.getCodigo() != null) {
+                usuario.setCodigo(request.getCodigo());
+            }
+            if (request.getMateria() != null) {
+                usuario.setMateria(request.getMateria());
+            }
+            if (request.getEspecialidad() != null) {
+                usuario.setEspecialidad(request.getEspecialidad());
+            }
         }
         if (adminEdita && request.getEstado() != null) {
             usuario.setEstado(request.getEstado());
