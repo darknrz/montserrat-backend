@@ -31,6 +31,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Configuration
@@ -44,6 +46,14 @@ public class DataInitializer {
 
     @Value("${app.admin.password:}")
     private String adminPassword;
+
+    private String serializeDocentes(List<String> docentes) {
+        return docentes == null ? "" : docentes.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .collect(Collectors.joining(","));
+    }
 
     @Bean
     public CommandLineRunner initData(
@@ -240,8 +250,13 @@ public class DataInitializer {
                     .count();
             boolean docentesCompetenciasPrimExisten = catalogoRepo.findAll().stream()
                     .anyMatch(c -> "DOCENTE_COMPETENCIA".equals(c.getTipo()) && "PRIMARIA".equals(c.getNivel()));
+            boolean tieneMapeosMatematicaPrimaria = catalogoRepo.findAll().stream()
+                    .anyMatch(c -> "DOCENTE_COMPETENCIA".equals(c.getTipo())
+                            && "PRIMARIA".equals(c.getNivel())
+                            && c.getCodigo() != null
+                            && c.getCodigo().contains("||MATEMATICA||"));
 
-            if (countCompetenciasPrimaria != 30 || !docentesCompetenciasPrimExisten) {
+            if (countCompetenciasPrimaria != 30 || !docentesCompetenciasPrimExisten || !tieneMapeosMatematicaPrimaria) {
                 log.info("Recreando áreas curriculares, competencias y docentes por competencia de PRIMARIA...");
                 List<CatalogoAcademico> aEliminar = catalogoRepo.findAll().stream()
                         .filter(c -> "PRIMARIA".equals(c.getNivel()) && 
@@ -323,159 +338,185 @@ public class DataInitializer {
                 log.info("{} mapeos curso-competencia de primaria creados", competenciaCursosPrim.size());
 
                 // Mapeos de Docentes por Competencia en PRIMARIA (1ro a 6to)
-                Map<String, String> docenteMap = Map.ofEntries(
+                Map<String, List<String>> docenteMap = Map.ofEntries(
                         // Inglés C17, C18, C19 (Daniela: 10000001)
-                        Map.entry("PRIMERO_PRIMARIA||INGLES||C17", "10000001"),
-                        Map.entry("PRIMERO_PRIMARIA||INGLES||C18", "10000001"),
-                        Map.entry("PRIMERO_PRIMARIA||INGLES||C19", "10000001"),
-                        Map.entry("SEGUNDO_PRIMARIA||INGLES||C17", "10000001"),
-                        Map.entry("SEGUNDO_PRIMARIA||INGLES||C18", "10000001"),
-                        Map.entry("SEGUNDO_PRIMARIA||INGLES||C19", "10000001"),
-                        Map.entry("TERCERO_PRIMARIA||INGLES||C17", "10000001"),
-                        Map.entry("TERCERO_PRIMARIA||INGLES||C18", "10000001"),
-                        Map.entry("TERCERO_PRIMARIA||INGLES||C19", "10000001"),
-                        Map.entry("CUARTO_PRIMARIA||INGLES||C17", "10000001"),
-                        Map.entry("CUARTO_PRIMARIA||INGLES||C18", "10000001"),
-                        Map.entry("CUARTO_PRIMARIA||INGLES||C19", "10000001"),
-                        Map.entry("QUINTO_PRIMARIA||INGLES||C17", "10000001"),
-                        Map.entry("QUINTO_PRIMARIA||INGLES||C18", "10000001"),
-                        Map.entry("QUINTO_PRIMARIA||INGLES||C19", "10000001"),
-                        Map.entry("SEXTO_PRIMARIA||INGLES||C17", "10000001"),
-                        Map.entry("SEXTO_PRIMARIA||INGLES||C18", "10000001"),
-                        Map.entry("SEXTO_PRIMARIA||INGLES||C19", "10000001"),
+                        Map.entry("PRIMERO_PRIMARIA||INGLES||C17", List.of("10000001")),
+                        Map.entry("PRIMERO_PRIMARIA||INGLES||C18", List.of("10000001")),
+                        Map.entry("PRIMERO_PRIMARIA||INGLES||C19", List.of("10000001")),
+                        Map.entry("SEGUNDO_PRIMARIA||INGLES||C17", List.of("10000001")),
+                        Map.entry("SEGUNDO_PRIMARIA||INGLES||C18", List.of("10000001")),
+                        Map.entry("SEGUNDO_PRIMARIA||INGLES||C19", List.of("10000001")),
+                        Map.entry("TERCERO_PRIMARIA||INGLES||C17", List.of("10000001")),
+                        Map.entry("TERCERO_PRIMARIA||INGLES||C18", List.of("10000001")),
+                        Map.entry("TERCERO_PRIMARIA||INGLES||C19", List.of("10000001")),
+                        Map.entry("CUARTO_PRIMARIA||INGLES||C17", List.of("10000001")),
+                        Map.entry("CUARTO_PRIMARIA||INGLES||C18", List.of("10000001")),
+                        Map.entry("CUARTO_PRIMARIA||INGLES||C19", List.of("10000001")),
+                        Map.entry("QUINTO_PRIMARIA||INGLES||C17", List.of("10000001")),
+                        Map.entry("QUINTO_PRIMARIA||INGLES||C18", List.of("10000001")),
+                        Map.entry("QUINTO_PRIMARIA||INGLES||C19", List.of("10000001")),
+                        Map.entry("SEXTO_PRIMARIA||INGLES||C17", List.of("10000001")),
+                        Map.entry("SEXTO_PRIMARIA||INGLES||C18", List.of("10000001")),
+                        Map.entry("SEXTO_PRIMARIA||INGLES||C19", List.of("10000001")),
 
                         // Personal Social C1-C3, C5 (1ro: Leslie: 10000002)
-                        Map.entry("PRIMERO_PRIMARIA||PERSONAL_SOCIAL||C1", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||PERSONAL_SOCIAL||C2", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||PERSONAL_SOCIAL||C3", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||PERSONAL_SOCIAL||C5", "10000002"),
+                        Map.entry("PRIMERO_PRIMARIA||PERSONAL_SOCIAL||C1", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||PERSONAL_SOCIAL||C2", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||PERSONAL_SOCIAL||C3", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||PERSONAL_SOCIAL||C5", List.of("10000002")),
 
                         // Personal Social C1-C3 (2do: Mirian Diego: 10000003)
-                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C1", "10000003"),
-                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C2", "10000003"),
-                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C3", "10000003"),
+                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C1", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C2", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C3", List.of("10000003")),
 
                         // Personal Social C1-C5 (3ro, 4to, 5to: Karin: 10000004)
-                        Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C1", "10000004"),
-                        Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C2", "10000004"),
-                        Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C3", "10000004"),
-                        Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C4", "10000004"),
-                        Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C5", "10000004"),
-                        Map.entry("CUARTO_PRIMARIA||PERSONAL_SOCIAL||C1", "10000004"),
-                        Map.entry("CUARTO_PRIMARIA||PERSONAL_SOCIAL||C2", "10000004"),
-                        Map.entry("CUARTO_PRIMARIA||PERSONAL_SOCIAL||C3", "10000004"),
-                        Map.entry("CUARTO_PRIMARIA||PERSONAL_SOCIAL||C4", "10000004"),
-                        Map.entry("CUARTO_PRIMARIA||PERSONAL_SOCIAL||C5", "10000004"),
-                        Map.entry("QUINTO_PRIMARIA||PERSONAL_SOCIAL||C1", "10000004"),
-                        Map.entry("QUINTO_PRIMARIA||PERSONAL_SOCIAL||C2", "10000004"),
-                        Map.entry("QUINTO_PRIMARIA||PERSONAL_SOCIAL||C3", "10000004"),
-                        Map.entry("QUINTO_PRIMARIA||PERSONAL_SOCIAL||C4", "10000004"),
-                        Map.entry("QUINTO_PRIMARIA||PERSONAL_SOCIAL||C5", "10000004"),
+                        Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C1", List.of("10000006", "10000007")),
+                        Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C2", List.of("10000004")),
+                        Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C3", List.of("10000004")),
+                        Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C4", List.of("10000006", "10000007")),
+                        Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C5", List.of("10000004")),
+                        Map.entry("CUARTO_PRIMARIA||PERSONAL_SOCIAL||C1", List.of("10000006", "10000007")),
+                        Map.entry("CUARTO_PRIMARIA||PERSONAL_SOCIAL||C2", List.of("10000004")),
+                        Map.entry("CUARTO_PRIMARIA||PERSONAL_SOCIAL||C3", List.of("10000004")),
+                        Map.entry("CUARTO_PRIMARIA||PERSONAL_SOCIAL||C4", List.of("10000006", "10000007")),
+                        Map.entry("CUARTO_PRIMARIA||PERSONAL_SOCIAL||C5", List.of("10000004")),
+                        Map.entry("QUINTO_PRIMARIA||PERSONAL_SOCIAL||C1", List.of("10000006", "10000007")),
+                        Map.entry("QUINTO_PRIMARIA||PERSONAL_SOCIAL||C2", List.of("10000004")),
+                        Map.entry("QUINTO_PRIMARIA||PERSONAL_SOCIAL||C3", List.of("10000004")),
+                        Map.entry("QUINTO_PRIMARIA||PERSONAL_SOCIAL||C4", List.of("10000006", "10000007")),
+                        Map.entry("QUINTO_PRIMARIA||PERSONAL_SOCIAL||C5", List.of("10000004")),
 
                         // Personal Social C1-C3 (6to: Rosvita: 10000005)
-                        Map.entry("SEXTO_PRIMARIA||PERSONAL_SOCIAL||C1", "10000005"),
-                        Map.entry("SEXTO_PRIMARIA||PERSONAL_SOCIAL||C2", "10000005"),
-                        Map.entry("SEXTO_PRIMARIA||PERSONAL_SOCIAL||C3", "10000005"),
+                        Map.entry("SEXTO_PRIMARIA||PERSONAL_SOCIAL||C1", List.of("10000005")),
+                        Map.entry("SEXTO_PRIMARIA||PERSONAL_SOCIAL||C2", List.of("10000005")),
+                        Map.entry("SEXTO_PRIMARIA||PERSONAL_SOCIAL||C3", List.of("10000005")),
                         // Personal Social C4 (6to: Karin: 10000004)
-                        Map.entry("SEXTO_PRIMARIA||PERSONAL_SOCIAL||C4", "10000004"),
+                        Map.entry("SEXTO_PRIMARIA||PERSONAL_SOCIAL||C4", List.of("10000004")),
 
                         // Educación Religiosa C6-C7
-                        Map.entry("PRIMERO_PRIMARIA||EDUCACION_RELIGIOSA||C6", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||EDUCACION_RELIGIOSA||C7", "10000002"),
-                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_RELIGIOSA||C6", "10000003"),
-                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_RELIGIOSA||C7", "10000003"),
-                        Map.entry("TERCERO_PRIMARIA||EDUCACION_RELIGIOSA||C6", "10000001"),
-                        Map.entry("TERCERO_PRIMARIA||EDUCACION_RELIGIOSA||C7", "10000001"),
-                        Map.entry("CUARTO_PRIMARIA||EDUCACION_RELIGIOSA||C6", "10000006"),
-                        Map.entry("CUARTO_PRIMARIA||EDUCACION_RELIGIOSA||C7", "10000006"),
-                        Map.entry("QUINTO_PRIMARIA||EDUCACION_RELIGIOSA||C6", "10000006"),
-                        Map.entry("QUINTO_PRIMARIA||EDUCACION_RELIGIOSA||C7", "10000006"),
-                        Map.entry("SEXTO_PRIMARIA||EDUCACION_RELIGIOSA||C6", "10000004"),
-                        Map.entry("SEXTO_PRIMARIA||EDUCACION_RELIGIOSA||C7", "10000004"),
+                        Map.entry("PRIMERO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||EDUCACION_RELIGIOSA||C7", List.of("10000002")),
+                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_RELIGIOSA||C7", List.of("10000003")),
+                        Map.entry("TERCERO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000001")),
+                        Map.entry("TERCERO_PRIMARIA||EDUCACION_RELIGIOSA||C7", List.of("10000001")),
+                        Map.entry("CUARTO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000006", "10000007")),
+                        Map.entry("CUARTO_PRIMARIA||EDUCACION_RELIGIOSA||C7", List.of("10000006", "10000007")),
+                        Map.entry("QUINTO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000006", "10000007")),
+                        Map.entry("QUINTO_PRIMARIA||EDUCACION_RELIGIOSA||C7", List.of("10000006", "10000007")),
+                        Map.entry("SEXTO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000004")),
+                        Map.entry("SEXTO_PRIMARIA||EDUCACION_RELIGIOSA||C7", List.of("10000004")),
 
                         // Educación Física C8-C10
-                        Map.entry("PRIMERO_PRIMARIA||EDUCACION_FISICA||C8", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||EDUCACION_FISICA||C9", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||EDUCACION_FISICA||C10", "10000002"),
-                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C8", "10000003"),
-                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C9", "10000003"),
-                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C10", "10000003"),
-                        Map.entry("TERCERO_PRIMARIA||EDUCACION_FISICA||C8", "10000008"),
-                        Map.entry("TERCERO_PRIMARIA||EDUCACION_FISICA||C9", "10000008"),
-                        Map.entry("TERCERO_PRIMARIA||EDUCACION_FISICA||C10", "10000008"),
-                        Map.entry("CUARTO_PRIMARIA||EDUCACION_FISICA||C8", "10000008"),
-                        Map.entry("CUARTO_PRIMARIA||EDUCACION_FISICA||C9", "10000008"),
-                        Map.entry("CUARTO_PRIMARIA||EDUCACION_FISICA||C10", "10000008"),
-                        Map.entry("QUINTO_PRIMARIA||EDUCACION_FISICA||C8", "10000008"),
-                        Map.entry("QUINTO_PRIMARIA||EDUCACION_FISICA||C9", "10000008"),
-                        Map.entry("QUINTO_PRIMARIA||EDUCACION_FISICA||C10", "10000008"),
-                        Map.entry("SEXTO_PRIMARIA||EDUCACION_FISICA||C8", "10000008"),
-                        Map.entry("SEXTO_PRIMARIA||EDUCACION_FISICA||C9", "10000008"),
-                        Map.entry("SEXTO_PRIMARIA||EDUCACION_FISICA||C10", "10000008"),
+                        Map.entry("PRIMERO_PRIMARIA||EDUCACION_FISICA||C8", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||EDUCACION_FISICA||C9", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||EDUCACION_FISICA||C10", List.of("10000002")),
+                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C8", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C9", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C10", List.of("10000003")),
+                        Map.entry("TERCERO_PRIMARIA||EDUCACION_FISICA||C8", List.of("10000008")),
+                        Map.entry("TERCERO_PRIMARIA||EDUCACION_FISICA||C9", List.of("10000008")),
+                        Map.entry("TERCERO_PRIMARIA||EDUCACION_FISICA||C10", List.of("10000008")),
+                        Map.entry("CUARTO_PRIMARIA||EDUCACION_FISICA||C8", List.of("10000008")),
+                        Map.entry("CUARTO_PRIMARIA||EDUCACION_FISICA||C9", List.of("10000008")),
+                        Map.entry("CUARTO_PRIMARIA||EDUCACION_FISICA||C10", List.of("10000008")),
+                        Map.entry("QUINTO_PRIMARIA||EDUCACION_FISICA||C8", List.of("10000008")),
+                        Map.entry("QUINTO_PRIMARIA||EDUCACION_FISICA||C9", List.of("10000008")),
+                        Map.entry("QUINTO_PRIMARIA||EDUCACION_FISICA||C10", List.of("10000008")),
+                        Map.entry("SEXTO_PRIMARIA||EDUCACION_FISICA||C8", List.of("10000008")),
+                        Map.entry("SEXTO_PRIMARIA||EDUCACION_FISICA||C9", List.of("10000008")),
+                        Map.entry("SEXTO_PRIMARIA||EDUCACION_FISICA||C10", List.of("10000008")),
 
                         // Comunicación C11-C13
-                        Map.entry("PRIMERO_PRIMARIA||COMUNICACION||C11", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||COMUNICACION||C12", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||COMUNICACION||C13", "10000002"),
-                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C11", "10000003"),
-                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C12", "10000003"),
-                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C13", "10000003"),
-                        Map.entry("TERCERO_PRIMARIA||COMUNICACION||C11", "10000004"),
-                        Map.entry("TERCERO_PRIMARIA||COMUNICACION||C12", "10000004"),
-                        Map.entry("TERCERO_PRIMARIA||COMUNICACION||C13", "10000004"),
-                        Map.entry("CUARTO_PRIMARIA||COMUNICACION||C11", "10000004"),
-                        Map.entry("CUARTO_PRIMARIA||COMUNICACION||C12", "10000009"),
-                        Map.entry("CUARTO_PRIMARIA||COMUNICACION||C13", "10000004"),
-                        Map.entry("QUINTO_PRIMARIA||COMUNICACION||C11", "10000009"),
-                        Map.entry("QUINTO_PRIMARIA||COMUNICACION||C12", "10000009"),
-                        Map.entry("QUINTO_PRIMARIA||COMUNICACION||C13", "10000009"),
-                        Map.entry("SEXTO_PRIMARIA||COMUNICACION||C11", "10000009"),
-                        Map.entry("SEXTO_PRIMARIA||COMUNICACION||C12", "10000009"),
-                        Map.entry("SEXTO_PRIMARIA||COMUNICACION||C13", "10000009"),
+                        Map.entry("PRIMERO_PRIMARIA||COMUNICACION||C11", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||COMUNICACION||C12", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||COMUNICACION||C13", List.of("10000002")),
+                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C11", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C12", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C13", List.of("10000003")),
+                        Map.entry("TERCERO_PRIMARIA||COMUNICACION||C11", List.of("10000004")),
+                        Map.entry("TERCERO_PRIMARIA||COMUNICACION||C12", List.of("10000004")),
+                        Map.entry("TERCERO_PRIMARIA||COMUNICACION||C13", List.of("10000004")),
+                        Map.entry("CUARTO_PRIMARIA||COMUNICACION||C11", List.of("10000004")),
+                        Map.entry("CUARTO_PRIMARIA||COMUNICACION||C12", List.of("10000009")),
+                        Map.entry("CUARTO_PRIMARIA||COMUNICACION||C13", List.of("10000004")),
+                        Map.entry("QUINTO_PRIMARIA||COMUNICACION||C11", List.of("10000009")),
+                        Map.entry("QUINTO_PRIMARIA||COMUNICACION||C12", List.of("10000009")),
+                        Map.entry("QUINTO_PRIMARIA||COMUNICACION||C13", List.of("10000009")),
+                        Map.entry("SEXTO_PRIMARIA||COMUNICACION||C11", List.of("10000009")),
+                        Map.entry("SEXTO_PRIMARIA||COMUNICACION||C12", List.of("10000009")),
+                        Map.entry("SEXTO_PRIMARIA||COMUNICACION||C13", List.of("10000009")),
 
                         // Arte y Cultura C14-C15
-                        Map.entry("PRIMERO_PRIMARIA||ARTE_CULTURA||C14", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||ARTE_CULTURA||C15", "10000002"),
-                        Map.entry("SEGUNDO_PRIMARIA||ARTE_CULTURA||C14", "10000003"),
-                        Map.entry("SEGUNDO_PRIMARIA||ARTE_CULTURA||C15", "10000003"),
-                        Map.entry("TERCERO_PRIMARIA||ARTE_CULTURA||C14", "10000010"),
-                        Map.entry("TERCERO_PRIMARIA||ARTE_CULTURA||C15", "10000010"),
-                        Map.entry("CUARTO_PRIMARIA||ARTE_CULTURA||C14", "10000010"),
-                        Map.entry("CUARTO_PRIMARIA||ARTE_CULTURA||C15", "10000010"),
-                        Map.entry("QUINTO_PRIMARIA||ARTE_CULTURA||C14", "10000010"),
-                        Map.entry("QUINTO_PRIMARIA||ARTE_CULTURA||C15", "10000010"),
-                        Map.entry("SEXTO_PRIMARIA||ARTE_CULTURA||C14", "10000010"),
-                        Map.entry("SEXTO_PRIMARIA||ARTE_CULTURA||C15", "10000010"),
+                        Map.entry("PRIMERO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||ARTE_CULTURA||C15", List.of("10000002")),
+                        Map.entry("SEGUNDO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||ARTE_CULTURA||C15", List.of("10000003")),
+                        Map.entry("TERCERO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000010")),
+                        Map.entry("TERCERO_PRIMARIA||ARTE_CULTURA||C15", List.of("10000010")),
+                        Map.entry("CUARTO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000010")),
+                        Map.entry("CUARTO_PRIMARIA||ARTE_CULTURA||C15", List.of("10000010")),
+                        Map.entry("QUINTO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000010")),
+                        Map.entry("QUINTO_PRIMARIA||ARTE_CULTURA||C15", List.of("10000010")),
+                        Map.entry("SEXTO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000010")),
+                        Map.entry("SEXTO_PRIMARIA||ARTE_CULTURA||C15", List.of("10000010")),
 
                         // Ciencia y Tecnología C24-C26
-                        Map.entry("PRIMERO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", "10000002"),
-                        Map.entry("PRIMERO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", "10000002"),
-                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", "10000003"),
-                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", "10000003"),
-                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", "10000003"),
-                        Map.entry("TERCERO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", "10000004"),
-                        Map.entry("TERCERO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", "10000004"),
-                        Map.entry("TERCERO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", "10000004"),
-                        Map.entry("CUARTO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", "10000011"),
-                        Map.entry("CUARTO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", "10000011"),
-                        Map.entry("CUARTO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", "10000011"),
-                        Map.entry("QUINTO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", "10000011"),
-                        Map.entry("QUINTO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", "10000011"),
-                        Map.entry("QUINTO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", "10000011"),
-                        Map.entry("SEXTO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", "10000011"),
-                        Map.entry("SEXTO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", "10000011"),
-                        Map.entry("SEXTO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", "10000011")
+                        Map.entry("PRIMERO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", List.of("10000002")),
+                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", List.of("10000003")),
+                        Map.entry("TERCERO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", List.of("10000004")),
+                        Map.entry("TERCERO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", List.of("10000004")),
+                        Map.entry("TERCERO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", List.of("10000004")),
+                        Map.entry("CUARTO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", List.of("10000011")),
+                        Map.entry("CUARTO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", List.of("10000011")),
+                        Map.entry("CUARTO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", List.of("10000011")),
+                        Map.entry("QUINTO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", List.of("10000011")),
+                        Map.entry("QUINTO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", List.of("10000011")),
+                        Map.entry("QUINTO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", List.of("10000011")),
+                        Map.entry("SEXTO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", List.of("10000011")),
+                        Map.entry("SEXTO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", List.of("10000011")),
+                        Map.entry("SEXTO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", List.of("10000011")),
+
+                        // Matemática (primeras 4 competencias por grado)
+                        Map.entry("PRIMERO_PRIMARIA||MATEMATICA||C20", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||MATEMATICA||C21", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||MATEMATICA||C22", List.of("10000002")),
+                        Map.entry("PRIMERO_PRIMARIA||MATEMATICA||C23", List.of("10000002")),
+                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C20", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C21", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C22", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C23", List.of("10000003")),
+                        Map.entry("TERCERO_PRIMARIA||MATEMATICA||C20", List.of("10000006", "10000007")),
+                        Map.entry("TERCERO_PRIMARIA||MATEMATICA||C21", List.of("10000011")),
+                        Map.entry("TERCERO_PRIMARIA||MATEMATICA||C22", List.of("10000004")),
+                        Map.entry("TERCERO_PRIMARIA||MATEMATICA||C23", List.of("10000006", "10000007")),
+                        Map.entry("CUARTO_PRIMARIA||MATEMATICA||C20", List.of("10000006", "10000007")),
+                        Map.entry("CUARTO_PRIMARIA||MATEMATICA||C21", List.of("10000012")),
+                        Map.entry("CUARTO_PRIMARIA||MATEMATICA||C22", List.of("10000012")),
+                        Map.entry("CUARTO_PRIMARIA||MATEMATICA||C23", List.of("10000006", "10000007")),
+                        Map.entry("QUINTO_PRIMARIA||MATEMATICA||C20", List.of("10000006", "10000007")),
+                        Map.entry("QUINTO_PRIMARIA||MATEMATICA||C21", List.of("10000012")),
+                        Map.entry("QUINTO_PRIMARIA||MATEMATICA||C22", List.of("10000012")),
+                        Map.entry("QUINTO_PRIMARIA||MATEMATICA||C23", List.of("10000006", "10000007")),
+                        Map.entry("SEXTO_PRIMARIA||MATEMATICA||C20", List.of("10000013")),
+                        Map.entry("SEXTO_PRIMARIA||MATEMATICA||C21", List.of("10000012")),
+                        Map.entry("SEXTO_PRIMARIA||MATEMATICA||C22", List.of("10000012")),
+                        Map.entry("SEXTO_PRIMARIA||MATEMATICA||C23", List.of("10000013"))
                 );
 
                 int idx = 5000;
                 List<CatalogoAcademico> docentesCompetenciasPrim = new ArrayList<>();
-                for (Map.Entry<String, String> entry : docenteMap.entrySet()) {
+                for (Map.Entry<String, List<String>> entry : docenteMap.entrySet()) {
                     docentesCompetenciasPrim.add(CatalogoAcademico.builder()
                             .tipo("DOCENTE_COMPETENCIA")
                             .nivel("PRIMARIA")
                             .codigo(entry.getKey())
-                            .nombre(entry.getValue())
+                            .nombre(serializeDocentes(entry.getValue()))
                             .activo(true)
                             .orden(idx++)
                             .build());
@@ -575,163 +616,163 @@ public class DataInitializer {
                 log.info("{} mapeos curso-competencia de secundaria creados", competenciaCursosSec.size());
 
                 // Mapeos de Docentes por Competencia en SECUNDARIA (1ro a 5to)
-                Map<String, String> docenteMapSec = Map.ofEntries(
+                Map<String, List<String>> docenteMapSec = Map.ofEntries(
                         // DPCC CS1: Adaluz Paye (20000001) para 1ro, 2do, 3ro; Rosvita Gómez (20000002) para 4to, 5to
-                        Map.entry("PRIMERO_SECUNDARIA||DPCC||CS1", "20000001"),
-                        Map.entry("SEGUNDO_SECUNDARIA||DPCC||CS1", "20000001"),
-                        Map.entry("TERCERO_SECUNDARIA||DPCC||CS1", "20000001"),
-                        Map.entry("CUARTO_SECUNDARIA||DPCC||CS1", "20000002"),
-                        Map.entry("QUINTO_SECUNDARIA||DPCC||CS1", "20000002"),
+                        Map.entry("PRIMERO_SECUNDARIA||DPCC||CS1", List.of("20000001")),
+                        Map.entry("SEGUNDO_SECUNDARIA||DPCC||CS1", List.of("20000001")),
+                        Map.entry("TERCERO_SECUNDARIA||DPCC||CS1", List.of("20000001")),
+                        Map.entry("CUARTO_SECUNDARIA||DPCC||CS1", List.of("20000002")),
+                        Map.entry("QUINTO_SECUNDARIA||DPCC||CS1", List.of("20000002")),
 
                         // DPCC CS2: Rosvita Gómez (20000002) para 1ro a 5to
-                        Map.entry("PRIMERO_SECUNDARIA||DPCC||CS2", "20000002"),
-                        Map.entry("SEGUNDO_SECUNDARIA||DPCC||CS2", "20000002"),
-                        Map.entry("TERCERO_SECUNDARIA||DPCC||CS2", "20000002"),
-                        Map.entry("CUARTO_SECUNDARIA||DPCC||CS2", "20000002"),
-                        Map.entry("QUINTO_SECUNDARIA||DPCC||CS2", "20000002"),
+                        Map.entry("PRIMERO_SECUNDARIA||DPCC||CS2", List.of("20000002")),
+                        Map.entry("SEGUNDO_SECUNDARIA||DPCC||CS2", List.of("20000002")),
+                        Map.entry("TERCERO_SECUNDARIA||DPCC||CS2", List.of("20000002")),
+                        Map.entry("CUARTO_SECUNDARIA||DPCC||CS2", List.of("20000002")),
+                        Map.entry("QUINTO_SECUNDARIA||DPCC||CS2", List.of("20000002")),
 
                         // Ciencias Sociales CS3, CS4, CS5: Rosvita Gómez (20000002) para 1ro a 5to
-                        Map.entry("PRIMERO_SECUNDARIA||CIENCIAS_SOCIALES||CS3", "20000002"),
-                        Map.entry("PRIMERO_SECUNDARIA||CIENCIAS_SOCIALES||CS4", "20000002"),
-                        Map.entry("PRIMERO_SECUNDARIA||CIENCIAS_SOCIALES||CS5", "20000002"),
-                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIAS_SOCIALES||CS3", "20000002"),
-                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIAS_SOCIALES||CS4", "20000002"),
-                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIAS_SOCIALES||CS5", "20000002"),
-                        Map.entry("TERCERO_SECUNDARIA||CIENCIAS_SOCIALES||CS3", "20000002"),
-                        Map.entry("TERCERO_SECUNDARIA||CIENCIAS_SOCIALES||CS4", "20000002"),
-                        Map.entry("TERCERO_SECUNDARIA||CIENCIAS_SOCIALES||CS5", "20000002"),
-                        Map.entry("CUARTO_SECUNDARIA||CIENCIAS_SOCIALES||CS3", "20000002"),
-                        Map.entry("CUARTO_SECUNDARIA||CIENCIAS_SOCIALES||CS4", "20000002"),
-                        Map.entry("CUARTO_SECUNDARIA||CIENCIAS_SOCIALES||CS5", "20000002"),
-                        Map.entry("QUINTO_SECUNDARIA||CIENCIAS_SOCIALES||CS3", "20000002"),
-                        Map.entry("QUINTO_SECUNDARIA||CIENCIAS_SOCIALES||CS4", "20000002"),
-                        Map.entry("QUINTO_SECUNDARIA||CIENCIAS_SOCIALES||CS5", "20000002"),
+                        Map.entry("PRIMERO_SECUNDARIA||CIENCIAS_SOCIALES||CS3", List.of("20000002")),
+                        Map.entry("PRIMERO_SECUNDARIA||CIENCIAS_SOCIALES||CS4", List.of("20000002")),
+                        Map.entry("PRIMERO_SECUNDARIA||CIENCIAS_SOCIALES||CS5", List.of("20000002")),
+                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIAS_SOCIALES||CS3", List.of("20000002")),
+                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIAS_SOCIALES||CS4", List.of("20000002")),
+                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIAS_SOCIALES||CS5", List.of("20000002")),
+                        Map.entry("TERCERO_SECUNDARIA||CIENCIAS_SOCIALES||CS3", List.of("20000002")),
+                        Map.entry("TERCERO_SECUNDARIA||CIENCIAS_SOCIALES||CS4", List.of("20000002")),
+                        Map.entry("TERCERO_SECUNDARIA||CIENCIAS_SOCIALES||CS5", List.of("20000002")),
+                        Map.entry("CUARTO_SECUNDARIA||CIENCIAS_SOCIALES||CS3", List.of("20000002")),
+                        Map.entry("CUARTO_SECUNDARIA||CIENCIAS_SOCIALES||CS4", List.of("20000002")),
+                        Map.entry("CUARTO_SECUNDARIA||CIENCIAS_SOCIALES||CS5", List.of("20000002")),
+                        Map.entry("QUINTO_SECUNDARIA||CIENCIAS_SOCIALES||CS3", List.of("20000002")),
+                        Map.entry("QUINTO_SECUNDARIA||CIENCIAS_SOCIALES||CS4", List.of("20000002")),
+                        Map.entry("QUINTO_SECUNDARIA||CIENCIAS_SOCIALES||CS5", List.of("20000002")),
 
                         // Educación Religiosa CS6, CS7
-                        Map.entry("PRIMERO_SECUNDARIA||EDUCACION_RELIGIOSA||CS6", "20000001"),
-                        Map.entry("PRIMERO_SECUNDARIA||EDUCACION_RELIGIOSA||CS7", "20000001"),
-                        Map.entry("SEGUNDO_SECUNDARIA||EDUCACION_RELIGIOSA||CS6", "20000003"),
-                        Map.entry("SEGUNDO_SECUNDARIA||EDUCACION_RELIGIOSA||CS7", "20000003"),
-                        Map.entry("TERCERO_SECUNDARIA||EDUCACION_RELIGIOSA||CS6", "20000004"),
-                        Map.entry("TERCERO_SECUNDARIA||EDUCACION_RELIGIOSA||CS7", "20000004"),
-                        Map.entry("CUARTO_SECUNDARIA||EDUCACION_RELIGIOSA||CS6", "20000002"),
-                        Map.entry("CUARTO_SECUNDARIA||EDUCACION_RELIGIOSA||CS7", "20000002"),
-                        Map.entry("QUINTO_SECUNDARIA||EDUCACION_RELIGIOSA||CS6", "20000002"),
-                        Map.entry("QUINTO_SECUNDARIA||EDUCACION_RELIGIOSA||CS7", "20000002"),
+                        Map.entry("PRIMERO_SECUNDARIA||EDUCACION_RELIGIOSA||CS6", List.of("20000001")),
+                        Map.entry("PRIMERO_SECUNDARIA||EDUCACION_RELIGIOSA||CS7", List.of("20000001")),
+                        Map.entry("SEGUNDO_SECUNDARIA||EDUCACION_RELIGIOSA||CS6", List.of("20000003")),
+                        Map.entry("SEGUNDO_SECUNDARIA||EDUCACION_RELIGIOSA||CS7", List.of("20000003")),
+                        Map.entry("TERCERO_SECUNDARIA||EDUCACION_RELIGIOSA||CS6", List.of("20000004")),
+                        Map.entry("TERCERO_SECUNDARIA||EDUCACION_RELIGIOSA||CS7", List.of("20000004")),
+                        Map.entry("CUARTO_SECUNDARIA||EDUCACION_RELIGIOSA||CS6", List.of("20000002")),
+                        Map.entry("CUARTO_SECUNDARIA||EDUCACION_RELIGIOSA||CS7", List.of("20000002")),
+                        Map.entry("QUINTO_SECUNDARIA||EDUCACION_RELIGIOSA||CS6", List.of("20000002")),
+                        Map.entry("QUINTO_SECUNDARIA||EDUCACION_RELIGIOSA||CS7", List.of("20000002")),
 
                         // Educación para el Trabajo CS8: Adaluz Paye (20000001) para 1ro a 5to
-                        Map.entry("PRIMERO_SECUNDARIA||EDUCACION_TRABAJO||CS8", "20000001"),
-                        Map.entry("SEGUNDO_SECUNDARIA||EDUCACION_TRABAJO||CS8", "20000001"),
-                        Map.entry("TERCERO_SECUNDARIA||EDUCACION_TRABAJO||CS8", "20000001"),
-                        Map.entry("CUARTO_SECUNDARIA||EDUCACION_TRABAJO||CS8", "20000001"),
-                        Map.entry("QUINTO_SECUNDARIA||EDUCACION_TRABAJO||CS8", "20000001"),
+                        Map.entry("PRIMERO_SECUNDARIA||EDUCACION_TRABAJO||CS8", List.of("20000005")),
+                        Map.entry("SEGUNDO_SECUNDARIA||EDUCACION_TRABAJO||CS8", List.of("20000005")),
+                        Map.entry("TERCERO_SECUNDARIA||EDUCACION_TRABAJO||CS8", List.of("20000005")),
+                        Map.entry("CUARTO_SECUNDARIA||EDUCACION_TRABAJO||CS8", List.of("20000005")),
+                        Map.entry("QUINTO_SECUNDARIA||EDUCACION_TRABAJO||CS8", List.of("20000005")),
 
                         // Comunicación CS12, CS13, CS14: Miriam Marcelo (20000003) para 1ro a 5to
-                        Map.entry("PRIMERO_SECUNDARIA||COMUNICACION||CS12", "20000003"),
-                        Map.entry("PRIMERO_SECUNDARIA||COMUNICACION||CS13", "20000003"),
-                        Map.entry("PRIMERO_SECUNDARIA||COMUNICACION||CS14", "20000003"),
-                        Map.entry("SEGUNDO_SECUNDARIA||COMUNICACION||CS12", "20000003"),
-                        Map.entry("SEGUNDO_SECUNDARIA||COMUNICACION||CS13", "20000003"),
-                        Map.entry("SEGUNDO_SECUNDARIA||COMUNICACION||CS14", "20000003"),
-                        Map.entry("TERCERO_SECUNDARIA||COMUNICACION||CS12", "20000003"),
-                        Map.entry("TERCERO_SECUNDARIA||COMUNICACION||CS13", "20000003"),
-                        Map.entry("TERCERO_SECUNDARIA||COMUNICACION||CS14", "20000003"),
-                        Map.entry("CUARTO_SECUNDARIA||COMUNICACION||CS12", "20000003"),
-                        Map.entry("CUARTO_SECUNDARIA||COMUNICACION||CS13", "20000003"),
-                        Map.entry("CUARTO_SECUNDARIA||COMUNICACION||CS14", "20000003"),
-                        Map.entry("QUINTO_SECUNDARIA||COMUNICACION||CS12", "20000003"),
-                        Map.entry("QUINTO_SECUNDARIA||COMUNICACION||CS13", "20000003"),
-                        Map.entry("QUINTO_SECUNDARIA||COMUNICACION||CS14", "20000003"),
+                        Map.entry("PRIMERO_SECUNDARIA||COMUNICACION||CS12", List.of("20000003")),
+                        Map.entry("PRIMERO_SECUNDARIA||COMUNICACION||CS13", List.of("20000003")),
+                        Map.entry("PRIMERO_SECUNDARIA||COMUNICACION||CS14", List.of("20000003")),
+                        Map.entry("SEGUNDO_SECUNDARIA||COMUNICACION||CS12", List.of("20000003")),
+                        Map.entry("SEGUNDO_SECUNDARIA||COMUNICACION||CS13", List.of("20000003")),
+                        Map.entry("SEGUNDO_SECUNDARIA||COMUNICACION||CS14", List.of("20000003")),
+                        Map.entry("TERCERO_SECUNDARIA||COMUNICACION||CS12", List.of("20000003")),
+                        Map.entry("TERCERO_SECUNDARIA||COMUNICACION||CS13", List.of("20000003")),
+                        Map.entry("TERCERO_SECUNDARIA||COMUNICACION||CS14", List.of("20000003")),
+                        Map.entry("CUARTO_SECUNDARIA||COMUNICACION||CS12", List.of("20000003")),
+                        Map.entry("CUARTO_SECUNDARIA||COMUNICACION||CS13", List.of("20000003")),
+                        Map.entry("CUARTO_SECUNDARIA||COMUNICACION||CS14", List.of("20000003")),
+                        Map.entry("QUINTO_SECUNDARIA||COMUNICACION||CS12", List.of("20000003")),
+                        Map.entry("QUINTO_SECUNDARIA||COMUNICACION||CS13", List.of("20000003")),
+                        Map.entry("QUINTO_SECUNDARIA||COMUNICACION||CS14", List.of("20000003")),
 
                         // Arte y Cultura CS15, CS16: Adaluz Paye (20000001) para 1ro a 5to
-                        Map.entry("PRIMERO_SECUNDARIA||ARTE_CULTURA||CS15", "20000001"),
-                        Map.entry("PRIMERO_SECUNDARIA||ARTE_CULTURA||CS16", "20000001"),
-                        Map.entry("SEGUNDO_SECUNDARIA||ARTE_CULTURA||CS15", "20000001"),
-                        Map.entry("SEGUNDO_SECUNDARIA||ARTE_CULTURA||CS16", "20000001"),
-                        Map.entry("TERCERO_SECUNDARIA||ARTE_CULTURA||CS15", "20000001"),
-                        Map.entry("TERCERO_SECUNDARIA||ARTE_CULTURA||CS16", "20000001"),
-                        Map.entry("CUARTO_SECUNDARIA||ARTE_CULTURA||CS15", "20000001"),
-                        Map.entry("CUARTO_SECUNDARIA||ARTE_CULTURA||CS16", "20000001"),
-                        Map.entry("QUINTO_SECUNDARIA||ARTE_CULTURA||CS15", "20000001"),
-                        Map.entry("QUINTO_SECUNDARIA||ARTE_CULTURA||CS16", "20000001"),
+                        Map.entry("PRIMERO_SECUNDARIA||ARTE_CULTURA||CS15", List.of("20000001")),
+                        Map.entry("PRIMERO_SECUNDARIA||ARTE_CULTURA||CS16", List.of("20000001")),
+                        Map.entry("SEGUNDO_SECUNDARIA||ARTE_CULTURA||CS15", List.of("20000001")),
+                        Map.entry("SEGUNDO_SECUNDARIA||ARTE_CULTURA||CS16", List.of("20000001")),
+                        Map.entry("TERCERO_SECUNDARIA||ARTE_CULTURA||CS15", List.of("20000001")),
+                        Map.entry("TERCERO_SECUNDARIA||ARTE_CULTURA||CS16", List.of("20000001")),
+                        Map.entry("CUARTO_SECUNDARIA||ARTE_CULTURA||CS15", List.of("20000001")),
+                        Map.entry("CUARTO_SECUNDARIA||ARTE_CULTURA||CS16", List.of("20000001")),
+                        Map.entry("QUINTO_SECUNDARIA||ARTE_CULTURA||CS15", List.of("20000001")),
+                        Map.entry("QUINTO_SECUNDARIA||ARTE_CULTURA||CS16", List.of("20000001")),
 
                         // Inglés CS20, CS21, CS22: Daniela Ydrogo (20000005) para 1ro a 5to
-                        Map.entry("PRIMERO_SECUNDARIA||INGLES||CS20", "20000005"),
-                        Map.entry("PRIMERO_SECUNDARIA||INGLES||CS21", "20000005"),
-                        Map.entry("PRIMERO_SECUNDARIA||INGLES||CS22", "20000005"),
-                        Map.entry("SEGUNDO_SECUNDARIA||INGLES||CS20", "20000005"),
-                        Map.entry("SEGUNDO_SECUNDARIA||INGLES||CS21", "20000005"),
-                        Map.entry("SEGUNDO_SECUNDARIA||INGLES||CS22", "20000005"),
-                        Map.entry("TERCERO_SECUNDARIA||INGLES||CS20", "20000005"),
-                        Map.entry("TERCERO_SECUNDARIA||INGLES||CS21", "20000005"),
-                        Map.entry("TERCERO_SECUNDARIA||INGLES||CS22", "20000005"),
-                        Map.entry("CUARTO_SECUNDARIA||INGLES||CS20", "20000005"),
-                        Map.entry("CUARTO_SECUNDARIA||INGLES||CS21", "20000005"),
-                        Map.entry("CUARTO_SECUNDARIA||INGLES||CS22", "20000005"),
-                        Map.entry("QUINTO_SECUNDARIA||INGLES||CS20", "20000005"),
-                        Map.entry("QUINTO_SECUNDARIA||INGLES||CS21", "20000005"),
-                        Map.entry("QUINTO_SECUNDARIA||INGLES||CS22", "20000005"),
+                        Map.entry("PRIMERO_SECUNDARIA||INGLES||CS20", List.of("20000005")),
+                        Map.entry("PRIMERO_SECUNDARIA||INGLES||CS21", List.of("20000005")),
+                        Map.entry("PRIMERO_SECUNDARIA||INGLES||CS22", List.of("20000005")),
+                        Map.entry("SEGUNDO_SECUNDARIA||INGLES||CS20", List.of("20000005")),
+                        Map.entry("SEGUNDO_SECUNDARIA||INGLES||CS21", List.of("20000005")),
+                        Map.entry("SEGUNDO_SECUNDARIA||INGLES||CS22", List.of("20000005")),
+                        Map.entry("TERCERO_SECUNDARIA||INGLES||CS20", List.of("20000005")),
+                        Map.entry("TERCERO_SECUNDARIA||INGLES||CS21", List.of("20000005")),
+                        Map.entry("TERCERO_SECUNDARIA||INGLES||CS22", List.of("20000005")),
+                        Map.entry("CUARTO_SECUNDARIA||INGLES||CS20", List.of("20000005")),
+                        Map.entry("CUARTO_SECUNDARIA||INGLES||CS21", List.of("20000005")),
+                        Map.entry("CUARTO_SECUNDARIA||INGLES||CS22", List.of("20000005")),
+                        Map.entry("QUINTO_SECUNDARIA||INGLES||CS20", List.of("20000005")),
+                        Map.entry("QUINTO_SECUNDARIA||INGLES||CS21", List.of("20000005")),
+                        Map.entry("QUINTO_SECUNDARIA||INGLES||CS22", List.of("20000005")),
 
                         // Matemática
                         // CS23 (Cantidad): 1ro, 2do -> Omar Bruno (20000006); 3ro, 4to, 5to -> Eladio Magariño (20000008)
-                        Map.entry("PRIMERO_SECUNDARIA||MATEMATICA||CS23", "20000006"),
-                        Map.entry("SEGUNDO_SECUNDARIA||MATEMATICA||CS23", "20000006"),
-                        Map.entry("TERCERO_SECUNDARIA||MATEMATICA||CS23", "20000008"),
-                        Map.entry("CUARTO_SECUNDARIA||MATEMATICA||CS23", "20000008"),
-                        Map.entry("QUINTO_SECUNDARIA||MATEMATICA||CS23", "20000008"),
+                        Map.entry("PRIMERO_SECUNDARIA||MATEMATICA||CS23", List.of("20000006")),
+                        Map.entry("SEGUNDO_SECUNDARIA||MATEMATICA||CS23", List.of("20000006")),
+                        Map.entry("TERCERO_SECUNDARIA||MATEMATICA||CS23", List.of("20000008")),
+                        Map.entry("CUARTO_SECUNDARIA||MATEMATICA||CS23", List.of("20000008")),
+                        Map.entry("QUINTO_SECUNDARIA||MATEMATICA||CS23", List.of("20000008")),
 
                         // CS24 (Regularidad): 1ro -> Christian Magariño (20000007); 2do a 5to -> Eladio Magariño (20000008)
-                        Map.entry("PRIMERO_SECUNDARIA||MATEMATICA||CS24", "20000007"),
-                        Map.entry("SEGUNDO_SECUNDARIA||MATEMATICA||CS24", "20000008"),
-                        Map.entry("TERCERO_SECUNDARIA||MATEMATICA||CS24", "20000008"),
-                        Map.entry("CUARTO_SECUNDARIA||MATEMATICA||CS24", "20000008"),
-                        Map.entry("QUINTO_SECUNDARIA||MATEMATICA||CS24", "20000008"),
+                        Map.entry("PRIMERO_SECUNDARIA||MATEMATICA||CS24", List.of("20000007")),
+                        Map.entry("SEGUNDO_SECUNDARIA||MATEMATICA||CS24", List.of("20000008")),
+                        Map.entry("TERCERO_SECUNDARIA||MATEMATICA||CS24", List.of("20000008")),
+                        Map.entry("CUARTO_SECUNDARIA||MATEMATICA||CS24", List.of("20000008")),
+                        Map.entry("QUINTO_SECUNDARIA||MATEMATICA||CS24", List.of("20000008")),
 
                         // CS25 (Forma): 1ro, 2do -> Christian Magariño (20000007); 3ro, 4to, 5to -> Eladio Magariño (20000008)
-                        Map.entry("PRIMERO_SECUNDARIA||MATEMATICA||CS25", "20000007"),
-                        Map.entry("SEGUNDO_SECUNDARIA||MATEMATICA||CS25", "20000007"),
-                        Map.entry("TERCERO_SECUNDARIA||MATEMATICA||CS25", "20000008"),
-                        Map.entry("CUARTO_SECUNDARIA||MATEMATICA||CS25", "20000008"),
-                        Map.entry("QUINTO_SECUNDARIA||MATEMATICA||CS25", "20000008"),
+                        Map.entry("PRIMERO_SECUNDARIA||MATEMATICA||CS25", List.of("20000007")),
+                        Map.entry("SEGUNDO_SECUNDARIA||MATEMATICA||CS25", List.of("20000007")),
+                        Map.entry("TERCERO_SECUNDARIA||MATEMATICA||CS25", List.of("20000008")),
+                        Map.entry("CUARTO_SECUNDARIA||MATEMATICA||CS25", List.of("20000008")),
+                        Map.entry("QUINTO_SECUNDARIA||MATEMATICA||CS25", List.of("20000008")),
 
                         // CS26 (Gestión de datos): 1ro, 2do -> Omar Bruno (20000006); 3ro, 4to, 5to -> Jhonatan Carhuancho (20000009)
-                        Map.entry("PRIMERO_SECUNDARIA||MATEMATICA||CS26", "20000006"),
-                        Map.entry("SEGUNDO_SECUNDARIA||MATEMATICA||CS26", "20000006"),
-                        Map.entry("TERCERO_SECUNDARIA||MATEMATICA||CS26", "20000009"),
-                        Map.entry("CUARTO_SECUNDARIA||MATEMATICA||CS26", "20000009"),
-                        Map.entry("QUINTO_SECUNDARIA||MATEMATICA||CS26", "20000009"),
+                        Map.entry("PRIMERO_SECUNDARIA||MATEMATICA||CS26", List.of("20000006")),
+                        Map.entry("SEGUNDO_SECUNDARIA||MATEMATICA||CS26", List.of("20000006")),
+                        Map.entry("TERCERO_SECUNDARIA||MATEMATICA||CS26", List.of("20000009")),
+                        Map.entry("CUARTO_SECUNDARIA||MATEMATICA||CS26", List.of("20000009")),
+                        Map.entry("QUINTO_SECUNDARIA||MATEMATICA||CS26", List.of("20000009")),
 
                         // Ciencia y Tecnología
                         // CS27 (Indaga): 1ro a 5to -> Fernando Jacinto (20000010)
-                        Map.entry("PRIMERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS27", "20000010"),
-                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS27", "20000010"),
-                        Map.entry("TERCERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS27", "20000010"),
-                        Map.entry("CUARTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS27", "20000010"),
-                        Map.entry("QUINTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS27", "20000010"),
+                        Map.entry("PRIMERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS27", List.of("20000010")),
+                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS27", List.of("20000010")),
+                        Map.entry("TERCERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS27", List.of("20000010")),
+                        Map.entry("CUARTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS27", List.of("20000010")),
+                        Map.entry("QUINTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS27", List.of("20000010")),
 
                         // CS28 (Mundo físico): 1ro, 2do -> Lourdes Bonilla (20000004); 3ro, 4to, 5to -> Zenon Meza (20000011)
-                        Map.entry("PRIMERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS28", "20000004"),
-                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS28", "20000004"),
-                        Map.entry("TERCERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS28", "20000011"),
-                        Map.entry("CUARTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS28", "20000011"),
-                        Map.entry("QUINTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS28", "20000011"),
+                        Map.entry("PRIMERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS28", List.of("20000004")),
+                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS28", List.of("20000004")),
+                        Map.entry("TERCERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS28", List.of("20000011")),
+                        Map.entry("CUARTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS28", List.of("20000011")),
+                        Map.entry("QUINTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS28", List.of("20000011")),
 
-                        // CS29 (Diseña): 1ro -> Omar Bruno (20000006); 2do -> Omar Bruno (20000006); 3ro, 4to, 5to -> César Veliz (20000012)
-                        Map.entry("PRIMERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS29", "20000006"),
-                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS29", "20000006"),
-                        Map.entry("TERCERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS29", "20000012"),
-                        Map.entry("CUARTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS29", "20000012"),
-                        Map.entry("QUINTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS29", "20000012")
+                        // CS29 (Diseña): 1ro -> Omar Bruno (20000006) y Lourdes Bonilla (20000004); 2do -> Omar Bruno (20000006); 3ro, 4to, 5to -> César Veliz (20000012)
+                        Map.entry("PRIMERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS29", List.of("20000006", "20000004")),
+                        Map.entry("SEGUNDO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS29", List.of("20000006")),
+                        Map.entry("TERCERO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS29", List.of("20000012")),
+                        Map.entry("CUARTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS29", List.of("20000012")),
+                        Map.entry("QUINTO_SECUNDARIA||CIENCIA_TECNOLOGIA||CS29", List.of("20000012"))
                 );
 
                 int idxSec = 6000;
                 List<CatalogoAcademico> docentesCompetenciasSec = new ArrayList<>();
-                for (Map.Entry<String, String> entry : docenteMapSec.entrySet()) {
+                for (Map.Entry<String, List<String>> entry : docenteMapSec.entrySet()) {
                     docentesCompetenciasSec.add(CatalogoAcademico.builder()
                             .tipo("DOCENTE_COMPETENCIA")
                             .nivel("SECUNDARIA")
                             .codigo(entry.getKey())
-                            .nombre(entry.getValue())
+                            .nombre(serializeDocentes(entry.getValue()))
                             .activo(true)
                             .orden(idxSec++)
                             .build());

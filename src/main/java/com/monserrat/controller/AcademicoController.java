@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/academico")
@@ -115,10 +116,24 @@ public class AcademicoController {
     }
 
     @GetMapping("/docente/notas")
-    @PreAuthorize("hasRole('DOCENTE')")
-    public List<NotaAcademicaDTO> listarNotasDocente(Authentication authentication) {
-        return academicoService.listarNotasDocente(authentication.getName());
+@PreAuthorize("hasAnyRole('DOCENTE', 'ADMIN')")
+public ResponseEntity<?> listarNotasDocente(Authentication authentication) {
+    try {
+        boolean esAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        List<NotaAcademicaDTO> notas = esAdmin
+                ? academicoService.listarTodasLasNotas()
+                : academicoService.listarNotasDocente(authentication.getName());
+
+        return ResponseEntity.ok(notas);
+    } catch (Exception e) {
+        System.err.println("Error en listarNotasDocente: " + e.getMessage());
+        e.printStackTrace();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
     }
+}
 
     @PostMapping("/docente/notas")
     @PreAuthorize("hasRole('DOCENTE')")

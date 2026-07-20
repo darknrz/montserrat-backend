@@ -25,6 +25,7 @@ public class NotaAcademica {
     @JoinColumn(name = "docente_id", nullable = false)
     private UsuarioAcademico docente;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private CursoAcademico curso;
 

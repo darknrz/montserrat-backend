@@ -65,13 +65,13 @@ class AcademicoConfigServiceTest {
             .seccionesSecundaria(List.of())
             .salones(List.of())
             .competenciasPorCursoPrimaria(Map.of("MATEMATICA", List.of("C1", "C2")))
-            .docentesPorCompetencia(Map.of("PRIMERO_PRIMARIA||MATEMATICA||C1", "12345678"))
+            .docentesPorCompetencia(Map.of("PRIMERO_PRIMARIA||MATEMATICA||C1", List.of("12345678", "87654321")))
             .build();
 
         AcademicoConfigDTO result = academicoConfigService.guardar(request);
 
         assertEquals(List.of("C1", "C2"), result.getCompetenciasPorCursoPrimaria().get("MATEMATICA"));
-        assertEquals("12345678", result.getDocentesPorCompetencia().get("PRIMERO_PRIMARIA||MATEMATICA||C1"));
+        assertEquals(List.of("12345678", "87654321"), result.getDocentesPorCompetencia().get("PRIMERO_PRIMARIA||MATEMATICA||C1"));
     }
 
     @Test

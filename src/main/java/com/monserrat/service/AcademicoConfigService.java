@@ -29,9 +29,9 @@ public class AcademicoConfigService {
     public AcademicoConfigDTO obtener() {
         AcademicoConfigDTO dto = new AcademicoConfigDTO();
         Map<String, List<String>> competenciasPorCurso = new LinkedHashMap<>();
-        Map<String, String> docentesPorCompetencia = new LinkedHashMap<>();
+        Map<String, List<String>> docentesPorCompetencia = new LinkedHashMap<>();
         Map<String, List<String>> competenciasPorCursoSecundaria = new LinkedHashMap<>();
-        Map<String, String> docentesPorCompetenciaSecundaria = new LinkedHashMap<>();
+        Map<String, List<String>> docentesPorCompetenciaSecundaria = new LinkedHashMap<>();
 
         catalogoRepository.findAllByOrderByOrdenAscIdAsc().forEach(item -> {
             addCatalog(dto, item);
@@ -39,13 +39,13 @@ public class AcademicoConfigService {
                 competenciasPorCurso.put(item.getCodigo(), parseCsvList(item.getNombre()));
             }
             if ("DOCENTE_COMPETENCIA".equals(item.getTipo()) && "PRIMARIA".equals(item.getNivel())) {
-                docentesPorCompetencia.put(item.getCodigo(), item.getNombre());
+                docentesPorCompetencia.put(item.getCodigo(), parseCsvList(item.getNombre()));
             }
             if ("COMPETENCIA_CURSO".equals(item.getTipo()) && "SECUNDARIA".equals(item.getNivel())) {
                 competenciasPorCursoSecundaria.put(item.getCodigo(), parseCsvList(item.getNombre()));
             }
             if ("DOCENTE_COMPETENCIA".equals(item.getTipo()) && "SECUNDARIA".equals(item.getNivel())) {
-                docentesPorCompetenciaSecundaria.put(item.getCodigo(), item.getNombre());
+                docentesPorCompetenciaSecundaria.put(item.getCodigo(), parseCsvList(item.getNombre()));
             }
         });
 
@@ -166,15 +166,15 @@ public class AcademicoConfigService {
         }
     }
 
-    private void addDocentesPorCompetencia(List<CatalogoAcademico> target, Map<String, String> mappings) {
+    private void addDocentesPorCompetencia(List<CatalogoAcademico> target, Map<String, List<String>> mappings) {
         if (mappings == null || mappings.isEmpty()) return;
         int index = 2000;
-        for (Map.Entry<String, String> entry : mappings.entrySet()) {
+        for (Map.Entry<String, List<String>> entry : mappings.entrySet()) {
             target.add(CatalogoAcademico.builder()
                     .tipo("DOCENTE_COMPETENCIA")
                     .nivel("PRIMARIA")
                     .codigo(entry.getKey())
-                    .nombre(entry.getValue())
+                    .nombre(serializeList(entry.getValue()))
                     .activo(true)
                     .orden(index++)
                     .build());
@@ -256,15 +256,15 @@ public class AcademicoConfigService {
         }
     }
 
-    private void addDocentesPorCompetenciaSecundaria(List<CatalogoAcademico> target, Map<String, String> mappings) {
+    private void addDocentesPorCompetenciaSecundaria(List<CatalogoAcademico> target, Map<String, List<String>> mappings) {
         if (mappings == null || mappings.isEmpty()) return;
         int index = 4000;
-        for (Map.Entry<String, String> entry : mappings.entrySet()) {
+        for (Map.Entry<String, List<String>> entry : mappings.entrySet()) {
             target.add(CatalogoAcademico.builder()
                     .tipo("DOCENTE_COMPETENCIA")
                     .nivel("SECUNDARIA")
                     .codigo(entry.getKey())
-                    .nombre(entry.getValue())
+                    .nombre(serializeList(entry.getValue()))
                     .activo(true)
                     .orden(index++)
                     .build());

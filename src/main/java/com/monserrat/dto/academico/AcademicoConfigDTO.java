@@ -22,7 +22,7 @@ public class AcademicoConfigDTO {
     @Builder.Default
     private Map<String, List<String>> competenciasPorCursoPrimaria = new LinkedHashMap<>();
     @Builder.Default
-    private Map<String, String> docentesPorCompetencia = new LinkedHashMap<>();
+    private Map<String, List<String>> docentesPorCompetencia = new LinkedHashMap<>();
     @Builder.Default
     private List<CatalogItemDTO> cursosSecundaria = new ArrayList<>();
     @Builder.Default
@@ -30,7 +30,7 @@ public class AcademicoConfigDTO {
     @Builder.Default
     private Map<String, List<String>> competenciasPorCursoSecundaria = new LinkedHashMap<>();
     @Builder.Default
-    private Map<String, String> docentesPorCompetenciaSecundaria = new LinkedHashMap<>();
+    private Map<String, List<String>> docentesPorCompetenciaSecundaria = new LinkedHashMap<>();
     @Builder.Default
     private List<CatalogItemDTO> gradosPrimaria = new ArrayList<>();
     @Builder.Default

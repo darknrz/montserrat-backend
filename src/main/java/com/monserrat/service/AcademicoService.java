@@ -363,6 +363,14 @@ public class AcademicoService {
     }
 
     @Transactional(readOnly = true)
+public List<NotaAcademicaDTO> listarTodasLasNotas() {
+    return notaRepository.findAll().stream()
+            .sorted(Comparator.comparing(NotaAcademica::getUpdatedAt).reversed())
+            .map(this::toNotaDto)
+            .toList();
+}
+
+    @Transactional(readOnly = true)
     public List<AsistenciaAcademicaDTO> listarAsistenciasAlumno(String alumnoDni) {
         return asistenciaRepository.findByAlumno_DniOrderByFechaDesc(alumnoDni).stream()
                 .map(this::toAsistenciaDto)
@@ -1118,23 +1126,30 @@ public class AcademicoService {
     }
 
     private NotaAcademicaDTO toNotaDto(NotaAcademica nota) {
+        Long alumnoId = nota.getAlumno() != null ? nota.getAlumno().getId() : null;
+        String alumnoDni = nota.getAlumno() != null ? nota.getAlumno().getDni() : null;
+        String alumnoNombre = nota.getAlumno() != null ? nota.getAlumno().getNombre() : null;
+        Long docenteId = nota.getDocente() != null ? nota.getDocente().getId() : null;
+        String docenteDni = nota.getDocente() != null ? nota.getDocente().getDni() : null;
+        String docenteNombre = nota.getDocente() != null ? nota.getDocente().getNombre() : null;
+
         return NotaAcademicaDTO.builder()
-                .id(nota.getId())
-                .alumnoId(nota.getAlumno().getId())
-                .alumnoDni(nota.getAlumno().getDni())
-                .alumnoNombre(nota.getAlumno().getNombre())
-                .docenteId(nota.getDocente().getId())
-                .docenteDni(nota.getDocente().getDni())
-                .docenteNombre(nota.getDocente().getNombre())
-                .curso(nota.getCurso())
-                .periodo(nota.getPeriodo())
-                .tipoEvaluacion(nota.getTipoEvaluacion())
-                .valor(nota.getValor())
-                .observacion(nota.getObservacion())
-                .competenciaId(nota.getCompetenciaId())
-                .createdAt(nota.getCreatedAt())
-                .updatedAt(nota.getUpdatedAt())
-                .build();
+            .id(nota.getId())
+            .alumnoId(alumnoId)
+            .alumnoDni(alumnoDni)
+            .alumnoNombre(alumnoNombre)
+            .docenteId(docenteId)
+            .docenteDni(docenteDni)
+            .docenteNombre(docenteNombre)
+            .curso(nota.getCurso())
+            .periodo(nota.getPeriodo())
+            .tipoEvaluacion(nota.getTipoEvaluacion())
+            .valor(nota.getValor())
+            .observacion(nota.getObservacion())
+            .competenciaId(nota.getCompetenciaId())
+            .createdAt(nota.getCreatedAt())
+            .updatedAt(nota.getUpdatedAt())
+            .build();
     }
 
     private AsignacionAcademicaDTO toAsignacionDto(AsignacionAcademica asignacion) {
