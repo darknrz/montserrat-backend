@@ -22,6 +22,7 @@ public class PerfilAcademicoDTO {
     private Long id;
     private String dni;
     private String codigo;
+    private String codigoChatbot;
     private String nombre;
     private String nombres;
     private String apellidos;

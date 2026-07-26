@@ -88,6 +88,14 @@ class ChatbotGuardServiceTest {
     }
 
     @Test
+    void classifiesNaturalGradeRequestsWithoutPersonalMarker() {
+        ChatbotMessageAnalysis analysis = guardService.analyze("consulta de nota");
+
+        assertThat(analysis.intent()).isEqualTo("PERSONAL_NOTAS");
+        assertThat(analysis.hasDirectResponse()).isFalse();
+    }
+
+    @Test
     void answersCapabilitiesEvenWithTypos() {
         ChatbotMessageAnalysis analysis = guardService.analyze("que pudes hacer");
 

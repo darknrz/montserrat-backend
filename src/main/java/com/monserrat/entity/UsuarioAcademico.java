@@ -26,6 +26,9 @@ public class UsuarioAcademico {
     @Column(unique = true, length = 30)
     private String codigo;
 
+    @Column(name = "codigo_chatbot", unique = true, length = 12)
+    private String codigoChatbot;
+
     @Column(nullable = false)
     private String password;
 

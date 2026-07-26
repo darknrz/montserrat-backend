@@ -18,6 +18,8 @@ public class DatabaseSchemaUpdater {
 
     @PostConstruct
     public void updateSchema() {
+        ensureUsuariosAcademicosCodigoChatbot();
+
         try {
             Integer length = jdbcTemplate.queryForObject(
                     "SELECT character_maximum_length FROM information_schema.columns " +
@@ -35,6 +37,28 @@ public class DatabaseSchemaUpdater {
             }
         } catch (Exception ex) {
             LOGGER.debug("Database schema update skipped or failed: {}", ex.getMessage());
+        }
+    }
+
+    private void ensureUsuariosAcademicosCodigoChatbot() {
+        try {
+            Boolean exists = jdbcTemplate.queryForObject(
+                    "SELECT EXISTS (" +
+                            "SELECT 1 FROM information_schema.columns " +
+                            "WHERE table_name = ? AND column_name = ? AND table_schema = 'public'" +
+                            ")",
+                    Boolean.class,
+                    "usuarios_academicos",
+                    "codigo_chatbot"
+            );
+
+            if (!Boolean.TRUE.equals(exists)) {
+                LOGGER.info("Adding usuarios_academicos.codigo_chatbot column");
+                jdbcTemplate.execute("ALTER TABLE usuarios_academicos ADD COLUMN codigo_chatbot varchar(12)");
+                jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS uk_usuarios_academicos_codigo_chatbot ON usuarios_academicos (codigo_chatbot)");
+            }
+        } catch (Exception ex) {
+            LOGGER.debug("codigo_chatbot schema update skipped or failed: {}", ex.getMessage());
         }
     }
 }

@@ -79,6 +79,12 @@ public class AcademicoController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/me/chatbot-code/regenerate")
+    @PreAuthorize("hasRole('ALUMNO')")
+    public PerfilAcademicoDTO regenerarCodigoChatbot(Authentication authentication) {
+        return academicoService.regenerarCodigoChatbot(authentication.getName());
+    }
+
     @GetMapping("/alumnos")
     @PreAuthorize("hasRole('ADMIN')")
     public List<UsuarioAcademicoDTO> listarAlumnos() {

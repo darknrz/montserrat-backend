@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS usuarios_academicos (
     id                       BIGSERIAL    PRIMARY KEY,
     dni                      VARCHAR(20)  NOT NULL UNIQUE,
     codigo                   VARCHAR(30) UNIQUE,
+    codigo_chatbot           VARCHAR(12) UNIQUE,
     password                 VARCHAR(255) NOT NULL,
     nombre                   VARCHAR(150) NOT NULL,
     nombres                  VARCHAR(100),

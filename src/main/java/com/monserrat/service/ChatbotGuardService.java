@@ -19,7 +19,11 @@ public class ChatbotGuardService {
 
     private static final Pattern LETTER_PATTERN = Pattern.compile(".*[a-zA-Z].*");
     private static final Pattern YEAR_ONLY_PATTERN = Pattern.compile("^(?:en\\s+)?(?:el\\s+)?(?:ano\\s+)?20\\d{2}$");
-    private static final Pattern REPEATED_CHAR_PATTERN = Pattern.compile(".*(.)\\1{4,}.*");
+    // Antes era ".*(.)\\1{4,}.*" y bloqueaba cualquier texto con 5+ caracteres repetidos,
+    // incluyendo digitos. Eso hacia que un DNI valido como "30000037" (contiene "00000")
+    // se marcara como ruido/spam. Ahora solo aplica a LETRAS repetidas (ej: "holaaaaa",
+    // "jajajaja"), nunca a numeros, que son datos legitimos (DNI, codigos, telefonos).
+    private static final Pattern REPEATED_CHAR_PATTERN = Pattern.compile(".*([a-z])\\1{4,}.*");
     private static final Pattern MANY_CONSONANTS_PATTERN = Pattern.compile(".*[bcdfghjklmnpqrstvwxyz]{5,}.*");
     private static final Pattern NAME_PATTERN = Pattern.compile("^(?:me llamo|mi nombre es|soy)\\s+([a-zA-Z ]{2,40})$");
 
@@ -37,6 +41,12 @@ public class ChatbotGuardService {
 
     private static final Set<String> GREETINGS = Set.of("hola", "buenos", "buenas", "saludos", "hello", "hi");
     private static final Set<String> SOCIAL_WORDS = Set.of("estas", "esta", "tal", "vas", "va");
+    private static final Set<String> PERSONAL_MARKERS = Set.of("mi", "mis", "mio", "mia", "mios", "mias", "yo");
+    private static final Set<String> ACADEMIC_REQUEST_WORDS = Set.of("consulta", "consultar", "ver", "revisar", "saber", "mostrar", "muestra");
+    private static final Set<String> PERSONAL_NOTES = Set.of("nota", "notas", "calificacion", "calificaciones", "promedio", "boleta");
+    private static final Set<String> PERSONAL_ATTENDANCE = Set.of("asistencia", "asistencias", "inasistencia", "inasistencias", "faltas", "tardanzas");
+    private static final Set<String> PERSONAL_PAYMENTS = Set.of("pension", "pensiones", "mensualidad", "mensualidades", "pago", "pagos", "deuda", "deudas");
+    private static final Set<String> PERSONAL_COURSES = Set.of("curso", "cursos", "area", "areas", "materia", "materias", "asignatura", "asignaturas");
     private static final Set<String> FILLER_WORDS = Set.of("por", "favor", "quiero", "quisiera", "saber", "informacion", "info", "me", "puedes", "decir", "sobre", "del", "de", "la", "el", "los", "las", "un", "una", "que", "cual", "como", "cuando", "cuanto", "cuantos", "hay");
     private static final Set<String> OUT_OF_SCOPE_KEYWORDS = Set.of("futbol", "partido", "receta", "cocina", "presidente", "politica", "clima", "programacion", "codigo", "java", "python", "bitcoin", "dolar", "pelicula", "musica", "tarea");
 
@@ -67,6 +77,11 @@ public class ChatbotGuardService {
         if (isSocialQuestion(words)) {
             return new ChatbotMessageAnalysis("CONVERSACION", BigDecimal.valueOf(0.70),
                     "Estoy bien, gracias. Soy el **Asistente Monserrat** y puedo ayudarte con informacion del colegio:\n- Matricula\n- Horarios\n- Ubicacion\n- Pensiones\n- Uniforme\n- Ingresantes");
+        }
+
+        String personalIntent = detectPersonalAcademicIntent(words);
+        if (personalIntent != null) {
+            return new ChatbotMessageAnalysis(personalIntent, BigDecimal.valueOf(0.90), null);
         }
 
         if ("AYUDA".equals(bestIntent.intent()) && bestIntent.score() > 0) {
@@ -124,6 +139,27 @@ public class ChatbotGuardService {
 
     private boolean isSocialQuestion(List<String> words) {
         return words.contains("como") && words.stream().anyMatch(SOCIAL_WORDS::contains);
+    }
+
+    private String detectPersonalAcademicIntent(List<String> words) {
+        boolean personal = words.stream().anyMatch(PERSONAL_MARKERS::contains)
+                || words.stream().anyMatch(ACADEMIC_REQUEST_WORDS::contains);
+        if (!personal) {
+            return null;
+        }
+        if (words.stream().anyMatch(PERSONAL_NOTES::contains)) {
+            return "PERSONAL_NOTAS";
+        }
+        if (words.stream().anyMatch(PERSONAL_ATTENDANCE::contains)) {
+            return "PERSONAL_ASISTENCIA";
+        }
+        if (words.stream().anyMatch(PERSONAL_PAYMENTS::contains)) {
+            return "PERSONAL_PENSION";
+        }
+        if (words.stream().anyMatch(PERSONAL_COURSES::contains)) {
+            return "PERSONAL_CURSOS";
+        }
+        return null;
     }
 
     private boolean isYearOnlyFollowUp(String normalized) {

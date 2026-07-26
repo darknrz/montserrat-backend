@@ -51,13 +51,38 @@ public class GroqAiService {
         }
 
         try {
+            return callGroq(systemPrompt(context, visitorName), userMessage, 0.2);
+        } catch (Exception ignored) {
+            return fallbackAnswer(userMessage, context, intent);
+        }
+    }
+
+    /**
+     * Llamada de proposito general al modelo: le pasas tu propio system prompt y
+     * user prompt ya armados (por ejemplo con datos verificados de un alumno) y
+     * te devuelve el texto generado tal cual.
+     *
+     * A diferencia de answer(...), esta NO tiene un fallback interno: si Groq
+     * falla (sin API key, error HTTP, timeout, etc.) lanza una excepcion para
+     * que quien la llama decida su propio fallback (por ejemplo, el que llama
+     * puede mostrar una respuesta con formato fijo en vez de esta version natural).
+     */
+    public String generate(String systemPrompt, String userPrompt) {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException("Groq API key no configurada");
+        }
+        return callGroq(systemPrompt, userPrompt, 0.4);
+    }
+
+    private String callGroq(String systemPrompt, String userPrompt, double temperature) {
+        try {
             Map<String, Object> payload = Map.of(
                     "model", model,
-                    "temperature", 0.2,
+                    "temperature", temperature,
                     "max_tokens", 450,
                     "messages", List.of(
-                            Map.of("role", "system", "content", systemPrompt(context, visitorName)),
-                            Map.of("role", "user", "content", userMessage)
+                            Map.of("role", "system", "content", systemPrompt),
+                            Map.of("role", "user", "content", userPrompt)
                     )
             );
 
@@ -73,13 +98,15 @@ public class GroqAiService {
                     .send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                return fallbackAnswer(userMessage, context, intent);
+                throw new IllegalStateException("Groq respondio con status " + response.statusCode() + ": " + response.body());
             }
 
             JsonNode root = objectMapper.readTree(response.body());
             return root.path("choices").get(0).path("message").path("content").asText();
-        } catch (Exception ignored) {
-            return fallbackAnswer(userMessage, context, intent);
+        } catch (IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("Error llamando a Groq", e);
         }
     }
 

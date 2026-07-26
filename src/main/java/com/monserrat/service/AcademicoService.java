@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -44,6 +45,10 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AcademicoService {
 
+    private static final String CHATBOT_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final int CHATBOT_CODE_LENGTH = 8;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final UsuarioAcademicoRepository usuarioRepository;
     private final AsignacionAcademicaRepository asignacionRepository;
     private final AsistenciaAcademicaRepository asistenciaRepository;
@@ -53,12 +58,18 @@ public class AcademicoService {
     private final PasswordEncoder passwordEncoder;
     private final com.monserrat.repository.CatalogoAcademicoRepository catalogoRepository;
 
+    @Transactional
     public List<UsuarioAcademicoDTO> listarUsuarios() {
-        return usuarioRepository.findAll().stream().map(this::toUsuarioDto).toList();
+        List<UsuarioAcademico> usuarios = usuarioRepository.findAll();
+        asegurarCodigosChatbot(usuarios);
+        return usuarios.stream().map(this::toUsuarioDto).toList();
     }
 
+    @Transactional
     public List<UsuarioAcademicoDTO> listarAlumnos() {
-        return usuarioRepository.findByRolAndActivoTrue(RolUsuario.ALUMNO).stream().map(this::toUsuarioDto).toList();
+        List<UsuarioAcademico> alumnos = usuarioRepository.findByRolAndActivoTrue(RolUsuario.ALUMNO);
+        asegurarCodigosChatbot(alumnos);
+        return alumnos.stream().map(this::toUsuarioDto).toList();
     }
 
     @Transactional(readOnly = true)
@@ -175,6 +186,7 @@ public class AcademicoService {
         UsuarioAcademico usuario = UsuarioAcademico.builder()
                 .dni(request.getDni())
                 .codigo(codigoFinal)
+                .codigoChatbot(generarCodigoChatbotUnico())
                 .password(passwordEncoder.encode(request.getDni()))
                 .nombre(request.getNombre())
                 .nombres(request.getNombres())
@@ -261,7 +273,16 @@ public class AcademicoService {
     }
 
     public PerfilAcademicoDTO obtenerPerfil(String dni) {
-        return toPerfilDto(buscarPorDni(dni));
+        UsuarioAcademico usuario = buscarPorDni(dni);
+        asegurarCodigoChatbot(usuario);
+        return toPerfilDto(usuarioRepository.save(usuario));
+    }
+
+    @Transactional
+    public PerfilAcademicoDTO regenerarCodigoChatbot(String dni) {
+        UsuarioAcademico usuario = exigirRol(buscarPorDni(dni), RolUsuario.ALUMNO);
+        usuario.setCodigoChatbot(generarCodigoChatbotUnico());
+        return toPerfilDto(usuarioRepository.save(usuario));
     }
 
     public PerfilAcademicoDTO actualizarPerfil(String dni, UpdatePerfilAcademicoRequest request) {
@@ -724,6 +745,37 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
     }
 
+    private void asegurarCodigoChatbot(UsuarioAcademico usuario) {
+        if (RolUsuario.ALUMNO.equals(usuario.getRol())
+                && (usuario.getCodigoChatbot() == null || usuario.getCodigoChatbot().isBlank())) {
+            usuario.setCodigoChatbot(generarCodigoChatbotUnico());
+        }
+    }
+
+    private void asegurarCodigosChatbot(List<UsuarioAcademico> usuarios) {
+        boolean changed = false;
+        for (UsuarioAcademico usuario : usuarios) {
+            String current = usuario.getCodigoChatbot();
+            asegurarCodigoChatbot(usuario);
+            changed = changed || !Objects.equals(current, usuario.getCodigoChatbot());
+        }
+        if (changed) {
+            usuarioRepository.saveAll(usuarios);
+        }
+    }
+
+    private String generarCodigoChatbotUnico() {
+        String codigo;
+        do {
+            StringBuilder builder = new StringBuilder(CHATBOT_CODE_LENGTH);
+            for (int i = 0; i < CHATBOT_CODE_LENGTH; i++) {
+                builder.append(CHATBOT_CODE_ALPHABET.charAt(SECURE_RANDOM.nextInt(CHATBOT_CODE_ALPHABET.length())));
+            }
+            codigo = builder.toString();
+        } while (usuarioRepository.existsByCodigoChatbotIgnoreCase(codigo));
+        return codigo;
+    }
+
     private UsuarioAcademico exigirRol(UsuarioAcademico usuario, RolUsuario rol) {
         if (!rol.equals(usuario.getRol())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuario no tiene rol " + rol);
@@ -1084,6 +1136,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                 .id(usuario.getId())
                 .dni(usuario.getDni())
                 .codigo(usuario.getCodigo())
+                .codigoChatbot(usuario.getCodigoChatbot())
                 .nombre(usuario.getNombre())
                 .nombres(usuario.getNombres())
                 .apellidos(usuario.getApellidos())
@@ -1338,6 +1391,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                     UsuarioAcademico usuario = UsuarioAcademico.builder()
                             .dni(dni)
                             .codigo(codigoGenerado)
+                            .codigoChatbot(generarCodigoChatbotUnico())
                             .nombre(nombreCompleto)
                             .apellidos(apellidos)
                             .correo(nombreCompleto.toLowerCase().replace(" ", ".") + "@importado.edu")
