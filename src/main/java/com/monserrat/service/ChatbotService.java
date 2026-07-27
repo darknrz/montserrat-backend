@@ -173,6 +173,23 @@ public class ChatbotService {
 
     private String resolveAnswer(String text, ChatbotConversation conversation, ChatbotMessageAnalysis analysis) {
         if (analysis.hasDirectResponse()) {
+            if (canHumanizeDirectResponse(analysis.intent()) && groqAiService.isConfigured()) {
+                String prompt = """
+                        El usuario escribio:
+                        %s
+
+                        Respuesta base segura:
+                        %s
+
+                        Reescribe la respuesta base con tono natural, conversacional y breve.
+                        Mantiene el mismo significado y no agregues datos nuevos.
+                        """.formatted(text, analysis.directResponse());
+                try {
+                    return groqAiService.generate(buildConversationalSystemPrompt(conversation, analysis.intent()), prompt);
+                } catch (Exception ignored) {
+                    return analysis.directResponse();
+                }
+            }
             return analysis.directResponse();
         }
 
@@ -184,7 +201,46 @@ public class ChatbotService {
             return resolvePersonalAcademicAnswer(text, analysis.intent(), conversation);
         }
 
-        return groqAiService.answer(text, knowledgeService.buildContext(), analysis.intent(), conversation.getNombreVisitante());
+        if (!groqAiService.isConfigured()) {
+            return groqAiService.answer(
+                    text,
+                    knowledgeService.buildContext(),
+                    analysis.intent(),
+                    conversation.getNombreVisitante()
+            );
+        }
+
+        return groqAiService.answer(
+                text,
+                knowledgeService.buildContext(),
+                analysis.intent(),
+                conversation.getNombreVisitante(),
+                buildConversationHistory(conversation.getId()),
+                findLastBotAnswer(conversation.getId()).orElse("")
+        );
+    }
+
+    private boolean canHumanizeDirectResponse(String intent) {
+        return "SALUDO".equals(intent)
+                || "CONVERSACION".equals(intent)
+                || "AYUDA".equals(intent);
+    }
+
+    private String buildConversationalSystemPrompt(ChatbotConversation conversation, String intent) {
+        return SYSTEM_PROMPT + """
+
+                Intencion detectada: %s
+
+                Conversacion reciente:
+                %s
+
+                Ultima respuesta del bot que no debes repetir literalmente:
+                %s
+                """.formatted(
+                intent == null || intent.isBlank() ? "GENERAL" : intent,
+                buildConversationHistory(conversation.getId()),
+                findLastBotAnswer(conversation.getId()).orElse("(ninguna)")
+        );
     }
 
     private ChatbotMessageAnalysis resolveAnalysisWithConversationContext(Long conversationId, ChatbotMessageAnalysis analysis, String text) {
@@ -293,9 +349,9 @@ public class ChatbotService {
         String conversationHistory = buildConversationHistory(conversation.getId());
         return switch (intent) {
             case "PERSONAL_NOTAS" -> buildNotasAnswer(alumno, conversationHistory);
-            case "PERSONAL_ASISTENCIA" -> buildAsistenciaAnswer(alumno);
-            case "PERSONAL_PENSION" -> buildPensionAnswer(alumno);
-            case "PERSONAL_CURSOS" -> buildCursosAnswer(alumno);
+            case "PERSONAL_ASISTENCIA" -> buildAsistenciaAnswer(alumno, conversationHistory);
+            case "PERSONAL_PENSION" -> buildPensionAnswer(alumno, conversationHistory);
+            case "PERSONAL_CURSOS" -> buildCursosAnswer(alumno, conversationHistory);
             default -> "Consulta verificada.";
         };
     }
@@ -532,14 +588,15 @@ public class ChatbotService {
         return value == null ? "" : value.replace("|", "/");
     }
 
-    private String buildCursosAnswer(UsuarioAcademico alumno) {
+    private String buildCursosAnswer(UsuarioAcademico alumno, String conversationHistory) {
         List<AsignacionAcademica> asignaciones = asignacionAcademicaRepository.findByAlumno_DniAndActivoTrue(alumno.getDni())
                 .stream()
                 .sorted(Comparator.comparing(asignacion -> asignacion.getCurso() == null ? "" : asignacion.getCurso().getNombre()))
                 .toList();
 
         if (asignaciones.isEmpty()) {
-            return "Verificacion correcta. Aun no hay cursos registrados para **" + alumno.getNombre() + "**.";
+            String fallback = "Verificacion correcta. Aun no hay cursos registrados para **" + alumno.getNombre() + "**.";
+            return humanizeVerifiedAnswer(conversationHistory, fallback);
         }
 
         AcademicCatalogLabels labels = buildAcademicCatalogLabels();
@@ -560,7 +617,7 @@ public class ChatbotService {
                 .append(" |\n"));
 
         answer.append("\nSi quieres, tambien puedo ayudarte con notas, asistencia o pension.");
-        return answer.toString().trim();
+        return humanizeVerifiedAnswer(conversationHistory, answer.toString().trim());
     }
 
     private String labelCurso(AsignacionAcademica asignacion, AcademicCatalogLabels labels) {
@@ -577,11 +634,12 @@ public class ChatbotService {
         return asignacion.getCurso().getNombre();
     }
 
-    private String buildAsistenciaAnswer(UsuarioAcademico alumno) {
+    private String buildAsistenciaAnswer(UsuarioAcademico alumno, String conversationHistory) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         var asistencias = asistenciaAcademicaRepository.findByAlumno_DniOrderByFechaDesc(alumno.getDni());
         if (asistencias.isEmpty()) {
-            return "Verificacion correcta. Aun no hay asistencias registradas para **" + alumno.getNombre() + "**.";
+            String fallback = "Verificacion correcta. Aun no hay asistencias registradas para **" + alumno.getNombre() + "**.";
+            return humanizeVerifiedAnswer(conversationHistory, fallback);
         }
 
         long presentes = asistencias.stream().filter(a -> a.getEstado() != null && "PRESENTE".equals(a.getEstado().name())).count();
@@ -602,10 +660,10 @@ public class ChatbotService {
                         .append(asistencia.getObservacion() == null || asistencia.getObservacion().isBlank() ? "" : " - " + asistencia.getObservacion())
                         .append("\n"));
 
-        return answer.toString().trim();
+        return humanizeVerifiedAnswer(conversationHistory, answer.toString().trim());
     }
 
-    private String buildPensionAnswer(UsuarioAcademico alumno) {
+    private String buildPensionAnswer(UsuarioAcademico alumno, String conversationHistory) {
         int year = Year.now().getValue();
         List<PensionMensual> pensiones = pensionMensualRepository.findByAlumno_DniAndAnio(alumno.getDni(), year)
                 .stream()
@@ -633,7 +691,31 @@ public class ChatbotService {
                     .append("\n"));
         }
 
-        return answer.toString().trim();
+        return humanizeVerifiedAnswer(conversationHistory, answer.toString().trim());
+    }
+
+    private String humanizeVerifiedAnswer(String conversationHistory, String verifiedAnswer) {
+        if (!groqAiService.isConfigured()) {
+            return verifiedAnswer;
+        }
+
+        String prompt = """
+                Conversacion reciente:
+                %s
+
+                DATOS VERIFICADOS / RESPUESTA BASE:
+                %s
+
+                Reescribe la respuesta en tono natural, humano y breve.
+                No cambies datos, no agregues informacion nueva y conserva tablas/listas si ayudan a entender.
+                Evita repetir literalmente frases anteriores.
+                """.formatted(conversationHistory, verifiedAnswer);
+
+        try {
+            return groqAiService.generate(SYSTEM_PROMPT, prompt);
+        } catch (Exception ignored) {
+            return verifiedAnswer;
+        }
     }
 
     private Optional<String> findLastUsefulIntent(Long conversationId) {
@@ -645,6 +727,15 @@ public class ChatbotService {
                 .filter(intent -> !"NO_ENTENDIDO".equals(intent))
                 .filter(intent -> !"FUERA_DE_TEMA".equals(intent))
                 .filter(intent -> !"SEGUIMIENTO".equals(intent))
+                .reduce((previous, current) -> current);
+    }
+
+    private Optional<String> findLastBotAnswer(Long conversationId) {
+        return messageRepository.findByConversacionIdOrderByCreadoEnAsc(conversationId)
+                .stream()
+                .filter(message -> "BOT".equals(message.getEmisor()))
+                .map(ChatbotMessage::getMensaje)
+                .filter(message -> message != null && !message.isBlank())
                 .reduce((previous, current) -> current);
     }
 

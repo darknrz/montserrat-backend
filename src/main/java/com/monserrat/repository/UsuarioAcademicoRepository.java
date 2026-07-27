@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface UsuarioAcademicoRepository extends JpaRepository<UsuarioAcademico, Long> {
     Optional<UsuarioAcademico> findByDni(String dni);
     Optional<UsuarioAcademico> findByCodigoIgnoreCase(String codigo);
+    Optional<UsuarioAcademico> findByCorreoIgnoreCase(String correo);
     boolean existsByDni(String dni);
     boolean existsByDniAndIdNot(String dni, Long id);
     boolean existsByCodigoIgnoreCase(String codigo);

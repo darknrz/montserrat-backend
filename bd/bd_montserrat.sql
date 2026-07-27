@@ -22,6 +22,31 @@ CREATE TABLE IF NOT EXISTS admins (
     activo   BOOLEAN      NOT NULL DEFAULT TRUE
 );
 
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id         BIGSERIAL    PRIMARY KEY,
+    token      VARCHAR(128) NOT NULL UNIQUE,
+    user_type  VARCHAR(30)  NOT NULL,
+    user_id    BIGINT       NOT NULL,
+    expires_at TIMESTAMP    NOT NULL,
+    used_at    TIMESTAMP,
+    created_at TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at
+    ON password_reset_tokens (expires_at);
+
+CREATE TABLE IF NOT EXISTS password_reset_attempts (
+    id           BIGSERIAL    PRIMARY KEY,
+    email        VARCHAR(180) NOT NULL,
+    requested_at TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_attempts_email_requested_at
+    ON password_reset_attempts (email, requested_at);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_attempts_requested_at
+    ON password_reset_attempts (requested_at);
+
 -- Institution
 CREATE TABLE IF NOT EXISTS institution (
     id               BIGSERIAL    PRIMARY KEY,

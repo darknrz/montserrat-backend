@@ -10,6 +10,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.Normalizer;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -18,6 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,20 +45,42 @@ public class GroqAiService {
     }
 
     public String answer(String userMessage, String context, String intent, String visitorName) {
+        return answerInternal(userMessage, context, intent, visitorName, "", "");
+    }
+
+    public String answer(
+            String userMessage,
+            String context,
+            String intent,
+            String visitorName,
+            String conversationHistory,
+            String previousBotAnswer
+    ) {
+        return answerInternal(userMessage, context, intent, visitorName, conversationHistory, previousBotAnswer);
+    }
+
+    private String answerInternal(
+            String userMessage,
+            String context,
+            String intent,
+            String visitorName,
+            String conversationHistory,
+            String previousBotAnswer
+    ) {
+        if (isConfigured()) {
+            try {
+                return callGroq(systemPrompt(context, visitorName, conversationHistory, previousBotAnswer, intent), userMessage, 0.55);
+            } catch (Exception ignored) {
+                return fallbackAnswer(userMessage, context, intent);
+            }
+        }
+
         String directAnswer = directAnswer(userMessage, context);
         if (directAnswer != null) {
             return directAnswer;
         }
 
-        if (apiKey == null || apiKey.isBlank()) {
-            return fallbackAnswer(userMessage, context, intent);
-        }
-
-        try {
-            return callGroq(systemPrompt(context, visitorName), userMessage, 0.2);
-        } catch (Exception ignored) {
-            return fallbackAnswer(userMessage, context, intent);
-        }
+        return fallbackAnswer(userMessage, context, intent);
     }
 
     /**
@@ -68,16 +94,20 @@ public class GroqAiService {
      * puede mostrar una respuesta con formato fijo en vez de esta version natural).
      */
     public String generate(String systemPrompt, String userPrompt) {
-        if (apiKey == null || apiKey.isBlank()) {
+        if (!isConfigured()) {
             throw new IllegalStateException("Groq API key no configurada");
         }
         return callGroq(systemPrompt, userPrompt, 0.4);
     }
 
+    public boolean isConfigured() {
+        return !resolveApiKey().isBlank();
+    }
+
     private String callGroq(String systemPrompt, String userPrompt, double temperature) {
         try {
             Map<String, Object> payload = Map.of(
-                    "model", model,
+                    "model", resolveModel(),
                     "temperature", temperature,
                     "max_tokens", 450,
                     "messages", List.of(
@@ -89,7 +119,7 @@ public class GroqAiService {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://api.groq.com/openai/v1/chat/completions"))
                     .timeout(Duration.ofSeconds(25))
-                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Authorization", "Bearer " + resolveApiKey())
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
                     .build();
@@ -110,23 +140,92 @@ public class GroqAiService {
         }
     }
 
-    private String systemPrompt(String context, String visitorName) {
+    private String resolveApiKey() {
+        return resolveConfigValue(apiKey, "GROQ_API_KEY");
+    }
+
+    private String resolveModel() {
+        String resolvedModel = resolveConfigValue(model, "GROQ_MODEL");
+        return resolvedModel.isBlank() ? "llama-3.1-8b-instant" : resolvedModel;
+    }
+
+    private String resolveConfigValue(String configuredValue, String envKey) {
+        if (configuredValue != null && !configuredValue.isBlank()) {
+            return configuredValue;
+        }
+
+        String envValue = System.getenv(envKey);
+        if (envValue != null && !envValue.isBlank()) {
+            return envValue;
+        }
+
+        return readDotenvValue(envKey).orElse("");
+    }
+
+    private Optional<String> readDotenvValue(String key) {
+        if (isRunningTests()) {
+            return Optional.empty();
+        }
+
+        for (Path dotenvPath : List.of(Path.of(".env"), Path.of("..", ".env"))) {
+            if (!Files.isRegularFile(dotenvPath)) {
+                continue;
+            }
+
+            try {
+                for (String line : Files.readAllLines(dotenvPath)) {
+                    String trimmed = line.trim();
+                    if (trimmed.startsWith("#") || !trimmed.startsWith(key + "=")) {
+                        continue;
+                    }
+
+                    return Optional.of(trimmed.substring((key + "=").length()).trim());
+                }
+            } catch (IOException ignored) {
+                return Optional.empty();
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private boolean isRunningTests() {
+        return System.getProperty("surefire.test.class.path") != null
+                || System.getProperty("java.class.path", "").contains("target/test-classes");
+    }
+
+    private String systemPrompt(String context, String visitorName, String conversationHistory, String previousBotAnswer, String intent) {
         return """
                 Eres el Asistente Monserrat de la I.E.P. Nuestra Senora de Monserrat de Huancayo.
-                Responde en espanol claro, amable y breve.
-                Si conoces el nombre del visitante, puedes usarlo de forma natural sin repetirlo en cada mensaje.
-                Usa solamente la informacion institucional incluida en el contexto.
-                No inventes costos, vacantes, requisitos no definidos ni fechas no incluidas.
-                Si preguntan por pensiones, costos o informacion no disponible, deriva al correo institucional.
-                Si detectas interes de matricula, pide nombre y telefono de contacto.
-                Si preguntan por ubicacion, horario o correo, responde de forma directa con esos datos.
-                Si preguntan por ingresantes de un ano, menciona algunos nombres del ano solicitado si estan en el contexto.
-                Evita responder con una frase generica si la respuesta esta claramente en el contexto.
-                Si el mensaje no tiene sentido, es solo simbolos, o esta fuera del tema institucional, responde que no entendiste y ofrece los temas disponibles.
+                Conversas en espanol natural, cercano y profesional, como una persona de admision del colegio.
+
+                Reglas:
+                - Usa solamente la informacion institucional incluida en el contexto.
+                - No inventes costos, vacantes, requisitos, telefonos, fechas ni datos no incluidos.
+                - Si preguntan por pensiones, costos o informacion no disponible, deriva al correo institucional.
+                - Si detectas interes de matricula, pide nombre y telefono de contacto de forma amable.
+                - Si preguntan por ubicacion, horario o correo, responde directo, sin sonar robotico.
+                - Si preguntan por ingresantes de un ano, menciona algunos nombres del ano solicitado si estan en el contexto.
                 No respondas preguntas externas como politica, deportes, recetas, programacion, clima, entretenimiento o finanzas.
+                - Responde breve: 2 a 5 lineas, salvo que pidan una lista.
+                - No repitas literalmente tu respuesta anterior. Si el usuario pregunta lo mismo, confirma de otra forma,
+                  resume distinto o agrega un matiz util sin inventar.
+                - Evita empezar siempre con "Hola" o cerrar siempre igual.
+
+                Intencion detectada: %s
+
+                Conversacion reciente:
+                %s
+
+                Ultima respuesta del bot que debes evitar repetir literalmente:
+                %s
 
                 CONTEXTO:
-                """ + (visitorName == null || visitorName.isBlank() ? "" : "Visitante: " + visitorName + "\n") + context;
+                """.formatted(
+                        intent == null || intent.isBlank() ? "GENERAL" : intent,
+                        conversationHistory == null || conversationHistory.isBlank() ? "(sin historial previo)" : conversationHistory,
+                        previousBotAnswer == null || previousBotAnswer.isBlank() ? "(ninguna)" : previousBotAnswer
+                ) + (visitorName == null || visitorName.isBlank() ? "" : "Visitante: " + visitorName + "\n") + context;
     }
 
     private String directAnswer(String userMessage, String context) {

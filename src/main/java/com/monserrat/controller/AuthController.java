@@ -1,8 +1,11 @@
 package com.monserrat.controller;
 
+import com.monserrat.dto.auth.ForgotPasswordRequest;
 import com.monserrat.dto.auth.LoginRequest;
 import com.monserrat.dto.auth.LoginResponse;
+import com.monserrat.dto.auth.ResetPasswordRequest;
 import com.monserrat.service.AuthService;
+import com.monserrat.service.PasswordResetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
     /**
      * POST /api/auth/login
@@ -24,6 +28,18 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestReset(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request);
+        return ResponseEntity.noContent().build();
     }
 
     /**
