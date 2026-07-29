@@ -121,4 +121,50 @@ class AcademicoConfigServiceTest {
         assertEquals(2L, competenciasPersistidas);
         assertTrue(result.getCompetenciasPrimaria().stream().anyMatch(item -> "C1".equals(item.getId()) && "Primera".equals(item.getLabel())));
     }
+
+    @Test
+    void guardarDebeIgnorarAreasCurricularesDuplicadasEnLaSolicitud() {
+        List<CatalogoAcademico> savedCatalogos = new ArrayList<>();
+
+        when(catalogoRepository.save(any(CatalogoAcademico.class))).thenAnswer(invocation -> {
+            CatalogoAcademico catalogo = invocation.getArgument(0);
+            catalogo.setId((long) (savedCatalogos.size() + 1));
+            savedCatalogos.add(catalogo);
+            return catalogo;
+        });
+        when(catalogoRepository.saveAll(anyList())).thenAnswer(invocation -> {
+            List<CatalogoAcademico> catalogos = invocation.getArgument(0);
+            for (CatalogoAcademico catalogo : catalogos) {
+                catalogo.setId((long) (savedCatalogos.size() + 1));
+                savedCatalogos.add(catalogo);
+            }
+            return catalogos;
+        });
+        when(catalogoRepository.findAllByOrderByOrdenAscIdAsc()).thenAnswer(invocation -> new ArrayList<>(savedCatalogos));
+        when(salonRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(salonRepository.findAllByOrderByOrdenAscIdAsc()).thenReturn(List.of());
+
+        AcademicoConfigDTO request = AcademicoConfigDTO.builder()
+            .cursosPrimaria(List.of(
+                AcademicoConfigDTO.CatalogItemDTO.builder().id("INGLES").label("Inglés").active(true).build(),
+                AcademicoConfigDTO.CatalogItemDTO.builder().id("INGLES").label("Inglés duplicado").active(true).build()
+            ))
+            .competenciasPrimaria(List.of())
+            .cursosSecundaria(List.of())
+            .gradosPrimaria(List.of())
+            .gradosSecundaria(List.of())
+            .seccionesPrimaria(List.of())
+            .seccionesSecundaria(List.of())
+            .salones(List.of())
+            .build();
+
+        AcademicoConfigDTO result = academicoConfigService.guardar(request);
+
+        long areasPersistidas = result.getCursosPrimaria().stream()
+            .filter(item -> "INGLES".equals(item.getId()))
+            .count();
+
+        assertEquals(1L, areasPersistidas);
+        assertTrue(result.getCursosPrimaria().stream().anyMatch(item -> "INGLES".equals(item.getId()) && "Inglés".equals(item.getLabel())));
+    }
 }

@@ -5,9 +5,10 @@ import com.monserrat.entity.CatalogoAcademico;
 import com.monserrat.entity.SalonAcademico;
 import com.monserrat.repository.CatalogoAcademicoRepository;
 import com.monserrat.repository.SalonAcademicoRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -17,13 +18,25 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class AcademicoConfigService {
 
     private static final int MAX_CATALOGO_NOMBRE_LENGTH = 500;
+    private final Object guardarLock = new Object();
 
     private final CatalogoAcademicoRepository catalogoRepository;
     private final SalonAcademicoRepository salonRepository;
+    private final TransactionTemplate transactionTemplate;
+
+    // Constructor explícito (ya no @RequiredArgsConstructor) porque
+    // necesitamos construir el TransactionTemplate a partir del
+    // PlatformTransactionManager inyectado.
+    public AcademicoConfigService(CatalogoAcademicoRepository catalogoRepository,
+                                   SalonAcademicoRepository salonRepository,
+                                   PlatformTransactionManager transactionManager) {
+        this.catalogoRepository = catalogoRepository;
+        this.salonRepository = salonRepository;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+    }
 
     @Transactional(readOnly = true)
     public AcademicoConfigDTO obtener() {
@@ -57,66 +70,77 @@ public class AcademicoConfigService {
         return dto;
     }
 
-    @Transactional
+    // Ya NO lleva @Transactional a nivel de método: la transacción se maneja
+    // explícitamente con transactionTemplate DENTRO del synchronized, para
+    // que el lock no se libere hasta que el commit ya se haya hecho.
     public AcademicoConfigDTO guardar(AcademicoConfigDTO request) {
-        catalogoRepository.deleteAllInBatch();
-        salonRepository.deleteAllInBatch();
+        synchronized (guardarLock) {
+            transactionTemplate.executeWithoutResult(status -> {
+                catalogoRepository.deleteAllInBatch();
+                salonRepository.deleteAllInBatch();
+                catalogoRepository.flush();
+                salonRepository.flush();
 
-        List<CatalogoAcademico> catalogos = new ArrayList<>();
-        // Primaria usa "AREA_CURRICULAR" (término correcto del currículo peruano
-        // para ese nivel); secundaria usa "CURSO". Mantener esta distinción
-        // consistente en TODO el flujo: DataInitializer, guardar() y el switch
-        // de addCatalog() de abajo deben usar siempre las mismas dos etiquetas.
-        addCatalogos(catalogos, "AREA_CURRICULAR", "PRIMARIA", request.getCursosPrimaria());
-        addCatalogos(catalogos, "CURSO", "SECUNDARIA", request.getCursosSecundaria());
-        addCatalogos(catalogos, "GRADO", "PRIMARIA", request.getGradosPrimaria());
-        addCatalogos(catalogos, "COMPETENCIA", "PRIMARIA", request.getCompetenciasPrimaria());
-        addCatalogos(catalogos, "COMPETENCIA", "SECUNDARIA", request.getCompetenciasSecundaria());
-        addCatalogos(catalogos, "GRADO", "SECUNDARIA", request.getGradosSecundaria());
-        addCatalogos(catalogos, "SECCION", "PRIMARIA", request.getSeccionesPrimaria());
-        addCatalogos(catalogos, "SECCION", "SECUNDARIA", request.getSeccionesSecundaria());
-        addCatalogos(catalogos, "NIVEL_ACADEMICO", "GLOBAL", request.getNivelesAcademicos());
-        addCompetenciasPorCurso(catalogos, request.getCompetenciasPorCursoPrimaria());
-        addDocentesPorCompetencia(catalogos, request.getDocentesPorCompetencia());
-        addCompetenciasPorCursoSecundaria(catalogos, request.getCompetenciasPorCursoSecundaria());
-        addDocentesPorCompetenciaSecundaria(catalogos, request.getDocentesPorCompetenciaSecundaria());
-        catalogoRepository.saveAll(catalogos);
+                List<CatalogoAcademico> catalogos = new ArrayList<>();
+                // Primaria usa "AREA_CURRICULAR" (término correcto del currículo peruano
+                // para ese nivel); secundaria usa "CURSO". Mantener esta distinción
+                // consistente en TODO el flujo: DataInitializer, guardar() y el switch
+                // de addCatalog() de abajo deben usar siempre las mismas dos etiquetas.
+                addCatalogos(catalogos, "AREA_CURRICULAR", "PRIMARIA", request.getCursosPrimaria());
+                addCatalogos(catalogos, "CURSO", "SECUNDARIA", request.getCursosSecundaria());
+                addCatalogos(catalogos, "GRADO", "PRIMARIA", request.getGradosPrimaria());
+                addCatalogos(catalogos, "COMPETENCIA", "PRIMARIA", request.getCompetenciasPrimaria());
+                addCatalogos(catalogos, "COMPETENCIA", "SECUNDARIA", request.getCompetenciasSecundaria());
+                addCatalogos(catalogos, "GRADO", "SECUNDARIA", request.getGradosSecundaria());
+                addCatalogos(catalogos, "SECCION", "PRIMARIA", request.getSeccionesPrimaria());
+                addCatalogos(catalogos, "SECCION", "SECUNDARIA", request.getSeccionesSecundaria());
+                addCatalogos(catalogos, "NIVEL_ACADEMICO", "GLOBAL", request.getNivelesAcademicos());
+                addCompetenciasPorCurso(catalogos, request.getCompetenciasPorCursoPrimaria());
+                addDocentesPorCompetencia(catalogos, request.getDocentesPorCompetencia());
+                addCompetenciasPorCursoSecundaria(catalogos, request.getCompetenciasPorCursoSecundaria());
+                addDocentesPorCompetenciaSecundaria(catalogos, request.getDocentesPorCompetenciaSecundaria());
+                catalogoRepository.saveAll(dedupeCatalogos(catalogos));
 
-        Integer minPct = request.getMinAsistenciaPorcentaje() != null ? request.getMinAsistenciaPorcentaje() : 70;
-        catalogoRepository.save(CatalogoAcademico.builder()
-                .tipo("ASISTENCIA")
-                .nivel("GLOBAL")
-                .codigo("MIN_PORCENTAJE")
-                .nombre(minPct.toString())
-                .activo(true)
-                .orden(999)
-                .build());
+                Integer minPct = request.getMinAsistenciaPorcentaje() != null ? request.getMinAsistenciaPorcentaje() : 70;
+                catalogoRepository.save(CatalogoAcademico.builder()
+                        .tipo("ASISTENCIA")
+                        .nivel("GLOBAL")
+                        .codigo("MIN_PORCENTAJE")
+                        .nombre(minPct.toString())
+                        .activo(true)
+                        .orden(999)
+                        .build());
 
-        String modelo = request.getIngresantesModelo() == null ? "card-grid" : request.getIngresantesModelo();
-        catalogoRepository.save(CatalogoAcademico.builder()
-            .tipo("INGRESANTES")
-            .nivel("GLOBAL")
-            .codigo("MODEL")
-            .nombre(modelo)
-            .activo(true)
-            .orden(998)
-            .build());
+                String modelo = request.getIngresantesModelo() == null ? "card-grid" : request.getIngresantesModelo();
+                catalogoRepository.save(CatalogoAcademico.builder()
+                        .tipo("INGRESANTES")
+                        .nivel("GLOBAL")
+                        .codigo("MODEL")
+                        .nombre(modelo)
+                        .activo(true)
+                        .orden(998)
+                        .build());
 
-        List<SalonAcademico> salones = new ArrayList<>();
-        List<AcademicoConfigDTO.SalonItemDTO> salonItems = request.getSalones() == null ? List.of() : request.getSalones();
-        for (int i = 0; i < salonItems.size(); i++) {
-            AcademicoConfigDTO.SalonItemDTO item = salonItems.get(i);
-            salones.add(SalonAcademico.builder()
-                    .nivel(item.getNivel())
-                    .grado(item.getGrado())
-                    .seccion(item.getSeccion())
-                    .aula(item.getAula())
-                    .activo(item.getActive() == null || item.getActive())
-                    .orden(i)
-                    .build());
+                List<SalonAcademico> salones = new ArrayList<>();
+                List<AcademicoConfigDTO.SalonItemDTO> salonItems = request.getSalones() == null ? List.of() : request.getSalones();
+                for (int i = 0; i < salonItems.size(); i++) {
+                    AcademicoConfigDTO.SalonItemDTO item = salonItems.get(i);
+                    salones.add(SalonAcademico.builder()
+                            .nivel(item.getNivel())
+                            .grado(item.getGrado())
+                            .seccion(item.getSeccion())
+                            .aula(item.getAula())
+                            .activo(item.getActive() == null || item.getActive())
+                            .orden(i)
+                            .build());
+                }
+                salonRepository.saveAll(salones);
+            });
+            // Para cuando salimos de aquí, el commit YA ocurrió (TransactionTemplate
+            // hace commit al terminar executeWithoutResult), así que es seguro
+            // liberar el lock y leer el estado recién guardado.
+            return obtener();
         }
-        salonRepository.saveAll(salones);
-        return obtener();
     }
 
     private void addCatalogos(List<CatalogoAcademico> target, String tipo, String nivel, List<AcademicoConfigDTO.CatalogItemDTO> items) {
@@ -131,24 +155,51 @@ public class AcademicoConfigService {
             if (label.length() > MAX_CATALOGO_NOMBRE_LENGTH) {
                 throw new IllegalArgumentException("El texto no puede superar 500 caracteres");
             }
-            String id = item.getId() == null ? "" : item.getId().trim();
-            if (id.isBlank()) {
+            String rawId = item.getId() == null ? "" : item.getId().trim();
+            if (rawId.isBlank()) {
                 continue;
             }
+            String id = normalizeCodigo(rawId);
             uniqueItems.putIfAbsent(id, item);
         }
 
         int index = 0;
-        for (AcademicoConfigDTO.CatalogItemDTO item : uniqueItems.values()) {
-            target.add(CatalogoAcademico.builder()
+        for (Map.Entry<String, AcademicoConfigDTO.CatalogItemDTO> entry : uniqueItems.entrySet()) {
+            CatalogoAcademico catalogo = CatalogoAcademico.builder()
                     .tipo(tipo)
                     .nivel(nivel)
-                    .codigo(item.getId())
-                    .nombre(item.getLabel())
-                    .activo(item.getActive() == null || item.getActive())
+                    .codigo(entry.getKey())
+                    .nombre(entry.getValue().getLabel())
+                    .activo(entry.getValue().getActive() == null || entry.getValue().getActive())
                     .orden(index++)
-                    .build());
+                    .build();
+            target.add(catalogo);
         }
+    }
+
+    private List<CatalogoAcademico> dedupeCatalogos(List<CatalogoAcademico> catalogos) {
+        Map<String, CatalogoAcademico> unique = new LinkedHashMap<>();
+        for (CatalogoAcademico catalogo : catalogos) {
+            String tipo = normalizeTipoNivel(catalogo.getTipo());
+            String nivel = normalizeTipoNivel(catalogo.getNivel());
+            String codigo = normalizeCodigo(catalogo.getCodigo());
+            catalogo.setTipo(tipo);
+            catalogo.setNivel(nivel);
+            catalogo.setCodigo(codigo);
+            String key = String.join("|", tipo, nivel, codigo);
+            unique.putIfAbsent(key, catalogo);
+        }
+        return new ArrayList<>(unique.values());
+    }
+
+    private String normalizeTipoNivel(String value) {
+        if (value == null) return "";
+        return value.trim().toUpperCase();
+    }
+
+    private String normalizeCodigo(String codigo) {
+        if (codigo == null) return "";
+        return codigo.trim().toUpperCase();
     }
 
     private void addCompetenciasPorCurso(List<CatalogoAcademico> target, Map<String, List<String>> mappings) {
