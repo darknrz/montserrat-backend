@@ -72,8 +72,9 @@ public class AcademicoService {
         return alumnos.stream().map(this::toUsuarioDto).toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<UsuarioAcademicoDTO> listarAlumnosDocente(String docenteDni) {
+        sincronizarAsignacionesDocenteSiEsNecesario(docenteDni);
         return asignacionRepository.findByDocente_DniAndActivoTrue(docenteDni).stream()
                 .map(AsignacionAcademica::getAlumno)
                 .filter(UsuarioAcademico::getActivo)
@@ -436,8 +437,9 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<AsignacionAcademicaDTO> listarAsignacionesDocente(String docenteDni) {
+        sincronizarAsignacionesDocenteSiEsNecesario(docenteDni);
         return asignacionRepository.findByDocente_DniAndActivoTrue(docenteDni).stream()
                 .peek(a -> {
                     // Asegurar que grado y sección se obtengan del alumno si están nulos en la asignación
@@ -1205,6 +1207,44 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
             .build();
     }
 
+    private void sincronizarAsignacionesDocenteSiEsNecesario(String docenteDni) {
+        if (docenteDni == null || docenteDni.isBlank()) {
+            return;
+        }
+
+        UsuarioAcademico docente = usuarioRepository.findByDni(docenteDni).orElse(null);
+        if (docente == null || Boolean.FALSE.equals(docente.getActivo())) {
+            return;
+        }
+
+        List<AsignacionAcademica> asignacionesDocente = asignacionRepository.findByDocente_DniAndActivoTrue(docenteDni);
+        if (!asignacionesDocente.isEmpty()) {
+            return;
+        }
+
+        usuarioRepository.findByRolAndActivoTrue(RolUsuario.ALUMNO)
+                .forEach(this::replicarAsignacionesDeAulaParaAlumno);
+    }
+
+    private void sincronizarAsignacionesDocenteSiEsNecesario(String docenteDni) {
+        if (docenteDni == null || docenteDni.isBlank()) {
+            return;
+        }
+
+        UsuarioAcademico docente = usuarioRepository.findByDni(docenteDni).orElse(null);
+        if (docente == null || Boolean.FALSE.equals(docente.getActivo())) {
+            return;
+        }
+
+        List<AsignacionAcademica> asignacionesDocente = asignacionRepository.findByDocente_DniAndActivoTrue(docenteDni);
+        if (!asignacionesDocente.isEmpty()) {
+            return;
+        }
+
+        usuarioRepository.findByRolAndActivoTrue(RolUsuario.ALUMNO)
+                .forEach(this::replicarAsignacionesDeAulaParaAlumno);
+    }
+
     private AsignacionAcademicaDTO toAsignacionDto(AsignacionAcademica asignacion) {
         return AsignacionAcademicaDTO.builder()
                 .id(asignacion.getId())
@@ -1251,25 +1291,9 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                 }
             }
 
-            // Crear asignaciones del catálogo
+            // Crear asignaciones del catálogo para todos los docentes listados
             for (java.util.Map.Entry<CursoAcademico, String> entry : cursoDocenteDniMap.entrySet()) {
-                UsuarioAcademico docente = usuarioRepository.findByDni(entry.getValue()).orElse(null);
-                if (docente != null) {
-                    boolean yaExiste = asignacionRepository.existsByDocente_DniAndAlumno_DniAndCursoAndGradoAndSeccionAndActivoTrue(
-                            docente.getDni(), alumno.getDni(), entry.getKey(), alumno.getGrado(), alumno.getSeccion());
-                    if (!yaExiste) {
-                        AsignacionAcademica nuevaAsignacion = AsignacionAcademica.builder()
-                                .docente(docente)
-                                .alumno(alumno)
-                                .curso(entry.getKey())
-                                .nivelEducativo(alumno.getNivelEducativo())
-                                .grado(alumno.getGrado())
-                                .seccion(alumno.getSeccion())
-                                .activo(true)
-                                .build();
-                        asignacionRepository.save(nuevaAsignacion);
-                    }
-                }
+                crearAsignacionesPorDocentes(alumno, entry.getKey(), entry.getValue());
             }
         }
 
@@ -1299,6 +1323,37 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                 asignacionRepository.save(nuevaAsignacion);
             }
         }
+    }
+
+    void crearAsignacionesPorDocentes(UsuarioAcademico alumno, CursoAcademico curso, String docentesCsv) {
+        if (docentesCsv == null || docentesCsv.isBlank()) {
+            return;
+        }
+
+        Arrays.stream(docentesCsv.split(","))
+                .map(String::trim)
+                .filter(docenteDni -> !docenteDni.isBlank())
+                .forEach(docenteDni -> {
+                    UsuarioAcademico docente = usuarioRepository.findByDni(docenteDni).orElse(null);
+                    if (docente == null) {
+                        return;
+                    }
+
+                    boolean yaExiste = asignacionRepository.existsByDocente_DniAndAlumno_DniAndCursoAndGradoAndSeccionAndActivoTrue(
+                            docente.getDni(), alumno.getDni(), curso, alumno.getGrado(), alumno.getSeccion());
+                    if (!yaExiste) {
+                        AsignacionAcademica nuevaAsignacion = AsignacionAcademica.builder()
+                                .docente(docente)
+                                .alumno(alumno)
+                                .curso(curso)
+                                .nivelEducativo(alumno.getNivelEducativo())
+                                .grado(alumno.getGrado())
+                                .seccion(alumno.getSeccion())
+                                .activo(true)
+                                .build();
+                        asignacionRepository.save(nuevaAsignacion);
+                    }
+                });
     }
 
     @Transactional
