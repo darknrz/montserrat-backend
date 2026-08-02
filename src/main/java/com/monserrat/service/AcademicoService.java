@@ -1226,24 +1226,6 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                 .forEach(this::replicarAsignacionesDeAulaParaAlumno);
     }
 
-    private void sincronizarAsignacionesDocenteSiEsNecesario(String docenteDni) {
-        if (docenteDni == null || docenteDni.isBlank()) {
-            return;
-        }
-
-        UsuarioAcademico docente = usuarioRepository.findByDni(docenteDni).orElse(null);
-        if (docente == null || Boolean.FALSE.equals(docente.getActivo())) {
-            return;
-        }
-
-        List<AsignacionAcademica> asignacionesDocente = asignacionRepository.findByDocente_DniAndActivoTrue(docenteDni);
-        if (!asignacionesDocente.isEmpty()) {
-            return;
-        }
-
-        usuarioRepository.findByRolAndActivoTrue(RolUsuario.ALUMNO)
-                .forEach(this::replicarAsignacionesDeAulaParaAlumno);
-    }
 
     private AsignacionAcademicaDTO toAsignacionDto(AsignacionAcademica asignacion) {
         return AsignacionAcademicaDTO.builder()
