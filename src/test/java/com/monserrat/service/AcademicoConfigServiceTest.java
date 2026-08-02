@@ -5,11 +5,15 @@ import com.monserrat.entity.CatalogoAcademico;
 import com.monserrat.entity.SalonAcademico;
 import com.monserrat.repository.CatalogoAcademicoRepository;
 import com.monserrat.repository.SalonAcademicoRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,8 +34,17 @@ class AcademicoConfigServiceTest {
     @Mock
     private SalonAcademicoRepository salonRepository;
 
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
     @InjectMocks
     private AcademicoConfigService academicoConfigService;
+
+    @BeforeEach
+    void setUp() {
+        TransactionStatus status = Mockito.mock(TransactionStatus.class);
+        Mockito.lenient().when(transactionManager.getTransaction(any())).thenReturn(status);
+    }
 
     @Test
     void guardarDebePersistirMapasDeCompetenciasYDocentes() {

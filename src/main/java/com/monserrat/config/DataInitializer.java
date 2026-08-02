@@ -4,7 +4,6 @@ import com.monserrat.entity.Admin;
 import com.monserrat.entity.AsignacionAcademica;
 import com.monserrat.entity.CatalogoAcademico;
 import com.monserrat.entity.ChatbotFaq;
-import com.monserrat.entity.Ingreso;
 import com.monserrat.entity.Institution;
 import com.monserrat.entity.RedSocial;
 import com.monserrat.entity.RolUsuario;
@@ -14,7 +13,6 @@ import com.monserrat.repository.AdminRepository;
 import com.monserrat.repository.AsignacionAcademicaRepository;
 import com.monserrat.repository.CatalogoAcademicoRepository;
 import com.monserrat.repository.ChatbotFaqRepository;
-import com.monserrat.repository.IngresoRepository;
 import com.monserrat.repository.InstitutionRepository;
 import com.monserrat.repository.RedSocialRepository;
 import com.monserrat.repository.UsuarioAcademicoRepository;
@@ -59,7 +57,6 @@ public class DataInitializer {
     public CommandLineRunner initData(
             AdminRepository adminRepo,
             InstitutionRepository institutionRepo,
-            IngresoRepository ingresoRepo,
             VideoRepository videoRepo,
             RedSocialRepository redSocialRepo,
             UsuarioAcademicoRepository usuarioAcademicoRepo,
@@ -116,33 +113,6 @@ public class DataInitializer {
                 log.info("Datos institucionales cargados");
             }
 
-            if (ingresoRepo.count() == 0) {
-                List<Ingreso> ingresantes = List.of(
-                        Ingreso.builder().nombre("Yupanqui Morales Vladimir Fernan").universidad("Universidad Nacional del Centro del Peru").universidadSiglas("UNCP").carrera("Sociologia").anio("2025").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Carrion Armaulia Samael").universidad("Universidad Nacional del Centro del Peru").universidadSiglas("UNCP").carrera("Sociologia").anio("2025").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Garcia Marmolejo Franco Ivan").universidad("Universidad Nacional del Centro del Peru").universidadSiglas("UNCP").carrera("Matematica e Informatica").anio("2025").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Magarino Vega Patrick Randolf").universidad("Universidad Nacional del Centro del Peru").universidadSiglas("UNCP").carrera("Ingenieria Mecanica").anio("2025").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Basurto Rojas Tiago Mateus").universidad("Universidad Nacional del Centro del Peru").universidadSiglas("UNCP").carrera("Ingenieria Mecanica Electrica").anio("2025").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Flores Torres Adriana").universidad("Universidad Nacional Mayor de San Marcos").universidadSiglas("UNMSM").carrera("Medicina Humana").anio("2025").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Quispe Torres Ana Lucia").universidad("Universidad Nacional del Centro del Peru").universidadSiglas("UNCP").carrera("Contabilidad").anio("2024").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Flores Huanca Jorge Luis").universidad("Universidad Nacional del Centro del Peru").universidadSiglas("UNCP").carrera("Administracion").anio("2024").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Lazo Palomino Kevin").universidad("Universidad Nacional de Ingenieria").universidadSiglas("UNI").carrera("Ingenieria Civil").anio("2024").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Huaman Ccente Rosa").universidad("Universidad Peruana Los Andes").universidadSiglas("UPLA").carrera("Derecho").anio("2024").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Poma Asto Ricardo").universidad("Universidad Nacional Federico Villarreal").universidadSiglas("UNFV").carrera("Odontologia").anio("2024").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Soto Lozano Milagros").universidad("Universidad San Martin de Porres").universidadSiglas("USMP").carrera("Arquitectura").anio("2024").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Ramos Ccente Valeria").universidad("Universidad Nacional del Centro del Peru").universidadSiglas("UNCP").carrera("Ingenieria de Sistemas").anio("2023").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Condori Poma Milagros").universidad("Universidad Nacional Mayor de San Marcos").universidadSiglas("UNMSM").carrera("Enfermeria").anio("2023").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Torres Solis Daniela").universidad("Universidad Peruana Los Andes").universidadSiglas("UPLA").carrera("Psicologia").anio("2023").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Huaman Asto Brayan").universidad("Universidad Nacional Agraria La Molina").universidadSiglas("UNALM").carrera("Agronomia").anio("2023").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Castillo Rojas Jean Paul").universidad("Universidad Nacional de Huancavelica").universidadSiglas("UNH").carrera("Educacion").anio("2022").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Mendoza Cruz Fiorella").universidad("Universidad Nacional del Centro del Peru").universidadSiglas("UNCP").carrera("Derecho").anio("2022").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Vargas Lima Luis").universidad("Universidad Nacional de Ingenieria").universidadSiglas("UNI").carrera("Ingenieria de Sistemas").anio("2022").tipoSeleccion("1ra Seleccion").activo(true).build(),
-                        Ingreso.builder().nombre("Apaza Rios Carmen").universidad("Universidad Nacional Federico Villarreal").universidadSiglas("UNFV").carrera("Trabajo Social").anio("2022").tipoSeleccion("1ra Seleccion").activo(true).build()
-                );
-                ingresoRepo.saveAll(ingresantes);
-                log.info("{} ingresantes cargados", ingresantes.size());
-            }
-
             if (videoRepo.count() == 0) {
                 log.info("No se cargaron medios iniciales. El carrusel quedara listo para que el admin suba archivos a Cloudinary.");
             }
@@ -172,9 +142,9 @@ public class DataInitializer {
 
             // Crear docentes de PRIMARIA
             List<UsuarioAcademico> docentesPrimaria = List.of(
-                    UsuarioAcademico.builder().dni("10000001").password(passwordEncoder.encode("10000001")).nombre("Miss Daniela").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000001").password(passwordEncoder.encode("10000001")).nombre("Daniela Ydrogo").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("10000002").password(passwordEncoder.encode("10000002")).nombre("Miss Leslie").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
-                    UsuarioAcademico.builder().dni("10000003").password(passwordEncoder.encode("10000003")).nombre("Mirian Diego").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000003").password(passwordEncoder.encode("10000003")).nombre("Mirian").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("10000004").password(passwordEncoder.encode("10000004")).nombre("Miss Karin").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("10000005").password(passwordEncoder.encode("10000005")).nombre("Rosvita Gómez").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("10000006").password(passwordEncoder.encode("10000006")).nombre("Prof. Odilio").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
@@ -182,9 +152,10 @@ public class DataInitializer {
                     UsuarioAcademico.builder().dni("10000008").password(passwordEncoder.encode("10000008")).nombre("Prof. Cristian Bonifacio").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("10000009").password(passwordEncoder.encode("10000009")).nombre("Miriam Marcelo").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("10000010").password(passwordEncoder.encode("10000010")).nombre("Miss Adaluz").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
-                    UsuarioAcademico.builder().dni("10000011").password(passwordEncoder.encode("10000011")).nombre("Miss Lourdes").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
-                    UsuarioAcademico.builder().dni("10000012").password(passwordEncoder.encode("10000012")).nombre("Prof. Christian Maga").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
-                    UsuarioAcademico.builder().dni("10000013").password(passwordEncoder.encode("10000013")).nombre("Omar Bruno").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build()
+                    UsuarioAcademico.builder().dni("10000011").password(passwordEncoder.encode("10000011")).nombre("Lourdes Bonilla").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000012").password(passwordEncoder.encode("10000012")).nombre("Cristian Magariño").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000013").password(passwordEncoder.encode("10000013")).nombre("Omar Bruno").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("10000014").password(passwordEncoder.encode("10000014")).nombre("Diego").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build()
             );
             for (UsuarioAcademico docente : docentesPrimaria) {
                 if (!usuarioAcademicoRepo.existsByDni(docente.getDni())) {
@@ -193,19 +164,35 @@ public class DataInitializer {
             }
             log.info("{} docentes de primaria creados/verificados", docentesPrimaria.size());
 
-            // Asignar códigos secuenciales a docentes de PRIMARIA (solo a los que no tienen código aún)
+            // ============================================================
+            // ASIGNACIÓN ROBUSTA DE CÓDIGOS DE DOCENTES (PRIMARIA + SECUNDARIA)
+            // ------------------------------------------------------------
+            // En vez de usar un punto de partida fijo por nivel (lo cual
+            // causaba colisiones tipo "DOC014 ya existe" cuando cambiaba
+            // la cantidad de docentes), se calcula el siguiente código
+            // libre revisando TODOS los docentes ya existentes en la BD,
+            // sin importar el nivel. Así el contador nunca se reinicia
+            // y nunca reutiliza un número ya ocupado.
+            // ============================================================
             List<UsuarioAcademico> docentesPrimariaActuales = usuarioAcademicoRepo.findAll().stream()
                     .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) &&
                             com.monserrat.entity.NivelEducativo.PRIMARIA.equals(u.getNivelEducativo()))
                     .sorted(Comparator.comparing(UsuarioAcademico::getDni))
                     .toList();
-            int numeroPrimaria = 1;
+
+            int siguienteCodigoDocente = usuarioAcademicoRepo.findAll().stream()
+                    .map(UsuarioAcademico::getCodigo)
+                    .filter(c -> c != null && c.matches("DOC\\d+"))
+                    .mapToInt(c -> Integer.parseInt(c.substring(3)))
+                    .max()
+                    .orElse(0) + 1;
+
             for (UsuarioAcademico docente : docentesPrimariaActuales) {
                 if (docente.getCodigo() == null || docente.getCodigo().isBlank()) {
-                    docente.setCodigo(String.format("DOC%03d", numeroPrimaria));
+                    docente.setCodigo(String.format("DOC%03d", siguienteCodigoDocente));
                     usuarioAcademicoRepo.save(docente);
+                    siguienteCodigoDocente++;
                 }
-                numeroPrimaria++;
             }
             log.info("Códigos asignados a {} docentes de primaria", docentesPrimariaActuales.size());
 
@@ -217,7 +204,7 @@ public class DataInitializer {
                     UsuarioAcademico.builder().dni("20000004").password(passwordEncoder.encode("20000004")).nombre("Lourdes Bonilla").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("20000005").password(passwordEncoder.encode("20000005")).nombre("Daniela Ydrogo").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("20000006").password(passwordEncoder.encode("20000006")).nombre("Omar Bruno").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
-                    UsuarioAcademico.builder().dni("20000007").password(passwordEncoder.encode("20000007")).nombre("Christian Magariño").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000007").password(passwordEncoder.encode("20000007")).nombre("Cristian Magariño").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("20000008").password(passwordEncoder.encode("20000008")).nombre("Eladio Magariño").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("20000009").password(passwordEncoder.encode("20000009")).nombre("Jhonatan Carhuancho").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("20000010").password(passwordEncoder.encode("20000010")).nombre("Fernando Jacinto").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
@@ -232,15 +219,19 @@ public class DataInitializer {
             log.info("{} docentes de secundaria creados/verificados", docentesSecundaria.size());
 
             // Asignar códigos secuenciales a docentes de SECUNDARIA
+            // (usa el MISMO contador `siguienteCodigoDocente`, sin reiniciar,
+            // y solo asigna si el docente aún no tiene código)
             List<UsuarioAcademico> docentesSecundariaActuales = usuarioAcademicoRepo.findAll().stream()
                     .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) &&
                             com.monserrat.entity.NivelEducativo.SECUNDARIA.equals(u.getNivelEducativo()))
+                    .sorted(Comparator.comparing(UsuarioAcademico::getDni))
                     .toList();
-            int docSecStart = 14; // Comenzar desde DOC014 después de docentes primaria
-            for (int i = 0; i < docentesSecundariaActuales.size(); i++) {
-                UsuarioAcademico docente = docentesSecundariaActuales.get(i);
-                docente.setCodigo(String.format("DOC%03d", docSecStart + i));
-                usuarioAcademicoRepo.save(docente);
+            for (UsuarioAcademico docente : docentesSecundariaActuales) {
+                if (docente.getCodigo() == null || docente.getCodigo().isBlank()) {
+                    docente.setCodigo(String.format("DOC%03d", siguienteCodigoDocente));
+                    usuarioAcademicoRepo.save(docente);
+                    siguienteCodigoDocente++;
+                }
             }
             log.info("Códigos asignados a {} docentes de secundaria", docentesSecundariaActuales.size());
 
@@ -259,11 +250,11 @@ public class DataInitializer {
             if (countCompetenciasPrimaria != 30 || !docentesCompetenciasPrimExisten || !tieneMapeosMatematicaPrimaria) {
                 log.info("Recreando áreas curriculares, competencias y docentes por competencia de PRIMARIA...");
                 List<CatalogoAcademico> aEliminar = catalogoRepo.findAll().stream()
-                        .filter(c -> "PRIMARIA".equals(c.getNivel()) && 
-                                ("AREA_CURRICULAR".equals(c.getTipo()) || 
-                                 "COMPETENCIA".equals(c.getTipo()) || 
-                                 "DOCENTE_COMPETENCIA".equals(c.getTipo()) || 
-                                 "COMPETENCIA_CURSO".equals(c.getTipo())))
+                        .filter(c -> "PRIMARIA".equals(c.getNivel()) &&
+                                ("AREA_CURRICULAR".equals(c.getTipo()) ||
+                                        "COMPETENCIA".equals(c.getTipo()) ||
+                                        "DOCENTE_COMPETENCIA".equals(c.getTipo()) ||
+                                        "COMPETENCIA_CURSO".equals(c.getTipo())))
                         .toList();
                 if (!aEliminar.isEmpty()) {
                     catalogoRepo.deleteAll(aEliminar);
@@ -366,9 +357,9 @@ public class DataInitializer {
                         Map.entry("PRIMERO_PRIMARIA||PERSONAL_SOCIAL||C5", List.of("10000002")),
 
                         // Personal Social C1-C3 (2do: Mirian Diego: 10000003)
-                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C1", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C2", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C3", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C1", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C2", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||PERSONAL_SOCIAL||C3", List.of("10000003", "10000014")),
 
                         // Personal Social C1-C5 (3ro, 4to, 5to: Karin: 10000004)
                         Map.entry("TERCERO_PRIMARIA||PERSONAL_SOCIAL||C1", List.of("10000006", "10000007")),
@@ -397,8 +388,8 @@ public class DataInitializer {
                         // Educación Religiosa C6-C7
                         Map.entry("PRIMERO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000002")),
                         Map.entry("PRIMERO_PRIMARIA||EDUCACION_RELIGIOSA||C7", List.of("10000002")),
-                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_RELIGIOSA||C7", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_RELIGIOSA||C7", List.of("10000003", "10000014")),
                         Map.entry("TERCERO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000001")),
                         Map.entry("TERCERO_PRIMARIA||EDUCACION_RELIGIOSA||C7", List.of("10000001")),
                         Map.entry("CUARTO_PRIMARIA||EDUCACION_RELIGIOSA||C6", List.of("10000006", "10000007")),
@@ -412,9 +403,9 @@ public class DataInitializer {
                         Map.entry("PRIMERO_PRIMARIA||EDUCACION_FISICA||C8", List.of("10000002")),
                         Map.entry("PRIMERO_PRIMARIA||EDUCACION_FISICA||C9", List.of("10000002")),
                         Map.entry("PRIMERO_PRIMARIA||EDUCACION_FISICA||C10", List.of("10000002")),
-                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C8", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C9", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C10", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C8", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C9", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||EDUCACION_FISICA||C10", List.of("10000003", "10000014")),
                         Map.entry("TERCERO_PRIMARIA||EDUCACION_FISICA||C8", List.of("10000008")),
                         Map.entry("TERCERO_PRIMARIA||EDUCACION_FISICA||C9", List.of("10000008")),
                         Map.entry("TERCERO_PRIMARIA||EDUCACION_FISICA||C10", List.of("10000008")),
@@ -432,9 +423,9 @@ public class DataInitializer {
                         Map.entry("PRIMERO_PRIMARIA||COMUNICACION||C11", List.of("10000002")),
                         Map.entry("PRIMERO_PRIMARIA||COMUNICACION||C12", List.of("10000002")),
                         Map.entry("PRIMERO_PRIMARIA||COMUNICACION||C13", List.of("10000002")),
-                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C11", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C12", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C13", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C11", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C12", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||COMUNICACION||C13", List.of("10000003", "10000014")),
                         Map.entry("TERCERO_PRIMARIA||COMUNICACION||C11", List.of("10000004")),
                         Map.entry("TERCERO_PRIMARIA||COMUNICACION||C12", List.of("10000004")),
                         Map.entry("TERCERO_PRIMARIA||COMUNICACION||C13", List.of("10000004")),
@@ -451,8 +442,8 @@ public class DataInitializer {
                         // Arte y Cultura C14-C15
                         Map.entry("PRIMERO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000002")),
                         Map.entry("PRIMERO_PRIMARIA||ARTE_CULTURA||C15", List.of("10000002")),
-                        Map.entry("SEGUNDO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||ARTE_CULTURA||C15", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||ARTE_CULTURA||C15", List.of("10000003", "10000014")),
                         Map.entry("TERCERO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000010")),
                         Map.entry("TERCERO_PRIMARIA||ARTE_CULTURA||C15", List.of("10000010")),
                         Map.entry("CUARTO_PRIMARIA||ARTE_CULTURA||C14", List.of("10000010")),
@@ -466,9 +457,9 @@ public class DataInitializer {
                         Map.entry("PRIMERO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", List.of("10000002")),
                         Map.entry("PRIMERO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", List.of("10000002")),
                         Map.entry("PRIMERO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", List.of("10000002")),
-                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", List.of("10000003", "10000014")),
                         Map.entry("TERCERO_PRIMARIA||CIENCIA_TECNOLOGIA||C24", List.of("10000004")),
                         Map.entry("TERCERO_PRIMARIA||CIENCIA_TECNOLOGIA||C25", List.of("10000004")),
                         Map.entry("TERCERO_PRIMARIA||CIENCIA_TECNOLOGIA||C26", List.of("10000004")),
@@ -487,10 +478,10 @@ public class DataInitializer {
                         Map.entry("PRIMERO_PRIMARIA||MATEMATICA||C21", List.of("10000002")),
                         Map.entry("PRIMERO_PRIMARIA||MATEMATICA||C22", List.of("10000002")),
                         Map.entry("PRIMERO_PRIMARIA||MATEMATICA||C23", List.of("10000002")),
-                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C20", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C21", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C22", List.of("10000003")),
-                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C23", List.of("10000003")),
+                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C20", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C21", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C22", List.of("10000003", "10000014")),
+                        Map.entry("SEGUNDO_PRIMARIA||MATEMATICA||C23", List.of("10000003", "10000014")),
                         Map.entry("TERCERO_PRIMARIA||MATEMATICA||C20", List.of("10000006", "10000007")),
                         Map.entry("TERCERO_PRIMARIA||MATEMATICA||C21", List.of("10000011")),
                         Map.entry("TERCERO_PRIMARIA||MATEMATICA||C22", List.of("10000004")),
@@ -532,20 +523,20 @@ public class DataInitializer {
                     .anyMatch(c -> "CS1".equals(c.getCodigo()) && "SECUNDARIA".equals(c.getNivel()));
             boolean docentesCompetenciasSecExisten = catalogoRepo.findAll().stream()
                     .anyMatch(c -> "DOCENTE_COMPETENCIA".equals(c.getTipo()) && "SECUNDARIA".equals(c.getNivel()));
-            
+
             if (!competenciasSecExisten || !docentesCompetenciasSecExisten) {
                 log.info("Recreando áreas curriculares, competencias y docentes por competencia de SECUNDARIA...");
                 List<CatalogoAcademico> aEliminarSec = catalogoRepo.findAll().stream()
-                        .filter(c -> "SECUNDARIA".equals(c.getNivel()) && 
-                                ("CURSO".equals(c.getTipo()) || 
-                                 "COMPETENCIA".equals(c.getTipo()) || 
-                                 "DOCENTE_COMPETENCIA".equals(c.getTipo()) || 
-                                 "COMPETENCIA_CURSO".equals(c.getTipo())))
+                        .filter(c -> "SECUNDARIA".equals(c.getNivel()) &&
+                                ("CURSO".equals(c.getTipo()) ||
+                                        "COMPETENCIA".equals(c.getTipo()) ||
+                                        "DOCENTE_COMPETENCIA".equals(c.getTipo()) ||
+                                        "COMPETENCIA_CURSO".equals(c.getTipo())))
                         .toList();
                 if (!aEliminarSec.isEmpty()) {
                     catalogoRepo.deleteAll(aEliminarSec);
                 }
-                
+
                 // Cursos de SECUNDARIA
                 List<CatalogoAcademico> cursosSecundaria = List.of(
                         CatalogoAcademico.builder().tipo("CURSO").nivel("SECUNDARIA").codigo("DPCC").nombre("Desarrollo Personal, Ciudadanía y Cívica").activo(true).orden(1).build(),
@@ -562,7 +553,7 @@ public class DataInitializer {
                 );
                 catalogoRepo.saveAll(cursosSecundaria);
                 log.info("{} cursos de secundaria creados", cursosSecundaria.size());
-                
+
                 // Competencias de SECUNDARIA
                 List<CatalogoAcademico> competenciasSecundaria = List.of(
                         CatalogoAcademico.builder().tipo("COMPETENCIA").nivel("SECUNDARIA").codigo("CS1").nombre("Construye su identidad.").activo(true).orden(1).build(),
@@ -597,7 +588,7 @@ public class DataInitializer {
                 );
                 catalogoRepo.saveAll(competenciasSecundaria);
                 log.info("{} competencias de secundaria creadas", competenciasSecundaria.size());
-                
+
                 // Mapeos de Competencias por Curso en SECUNDARIA
                 List<CatalogoAcademico> competenciaCursosSec = List.of(
                         CatalogoAcademico.builder().tipo("COMPETENCIA_CURSO").nivel("SECUNDARIA").codigo("DPCC").nombre("CS1,CS2").activo(true).orden(1).build(),
@@ -816,10 +807,10 @@ public class DataInitializer {
             // Crear grados de PRIMARIA
             boolean gradosExisten = catalogoRepo.findAll().stream()
                     .anyMatch(c -> "PRIMERO_PRIMARIA".equals(c.getCodigo()) && "PRIMARIA".equals(c.getNivel()));
-            
+
             if (!gradosExisten) {
                 log.info("Iniciando creación de grados de PRIMARIA...");
-                
+
                 List<CatalogoAcademico> gradosPrimaria = List.of(
                         CatalogoAcademico.builder().tipo("GRADO").nivel("PRIMARIA").codigo("PRIMERO_PRIMARIA").nombre("Primer Grado").activo(true).orden(1).build(),
                         CatalogoAcademico.builder().tipo("GRADO").nivel("PRIMARIA").codigo("SEGUNDO_PRIMARIA").nombre("Segundo Grado").activo(true).orden(2).build(),
@@ -837,10 +828,10 @@ public class DataInitializer {
             // Crear secciones de PRIMARIA
             boolean seccionesExisten = catalogoRepo.findAll().stream()
                     .anyMatch(c -> "A".equals(c.getCodigo()) && "SECCION".equals(c.getTipo()) && "PRIMARIA".equals(c.getNivel()));
-            
+
             if (!seccionesExisten) {
                 log.info("Iniciando creación de secciones de PRIMARIA...");
-                
+
                 List<CatalogoAcademico> seccionesPrimaria = List.of(
                         CatalogoAcademico.builder().tipo("SECCION").nivel("PRIMARIA").codigo("A").nombre("Sección A").activo(true).orden(1).build(),
                         CatalogoAcademico.builder().tipo("SECCION").nivel("PRIMARIA").codigo("B").nombre("Sección B").activo(true).orden(2).build(),
@@ -855,7 +846,7 @@ public class DataInitializer {
             // Crear niveles académicos por defecto
             boolean nivelesExisten = catalogoRepo.findAll().stream()
                     .anyMatch(c -> "NIVEL_ACADEMICO".equals(c.getTipo()));
-            
+
             if (!nivelesExisten) {
                 log.info("Iniciando creación de niveles académicos...");
                 List<CatalogoAcademico> niveles = List.of(
@@ -877,40 +868,40 @@ public class DataInitializer {
             // Crear asignaciones automáticas basadas en los alumnos existentes y docentes
             if (asignacionRepo.count() == 0) {
                 List<AsignacionAcademica> asignacionesDefault = new ArrayList<>();
-                
+
                 // Obtener todos los docentes y alumnos activos (USAR LOS ALUMNOS IMPORTADOS)
                 List<UsuarioAcademico> docentes = usuarioAcademicoRepo.findByRolAndActivoTrue(RolUsuario.DOCENTE);
                 List<UsuarioAcademico> alumnos = usuarioAcademicoRepo.findByRolAndActivoTrue(RolUsuario.ALUMNO);
-                
+
                 log.info("Creando asignaciones para {} alumnos existentes y {} docentes", alumnos.size(), docentes.size());
-                
+
                 // Por cada alumno existente, asignarle todos los docentes que tengan su grado
                 for (UsuarioAcademico alumno : alumnos) {
                     for (UsuarioAcademico docente : docentes) {
                         // Solo asignar si son del mismo nivel educativo
-                        if (alumno.getNivelEducativo() != null && 
-                            docente.getNivelEducativo() != null &&
-                            alumno.getNivelEducativo().equals(docente.getNivelEducativo())) {
-                            
+                        if (alumno.getNivelEducativo() != null &&
+                                docente.getNivelEducativo() != null &&
+                                alumno.getNivelEducativo().equals(docente.getNivelEducativo())) {
+
                             // Crear asignaciones con materias básicas
                             List<com.monserrat.entity.CursoAcademico> materias = new ArrayList<>();
                             if (alumno.getNivelEducativo().equals(com.monserrat.entity.NivelEducativo.PRIMARIA)) {
                                 materias = List.of(
-                                    com.monserrat.entity.CursoAcademico.PERSONAL_SOCIAL,
-                                    com.monserrat.entity.CursoAcademico.MATEMATICA,
-                                    com.monserrat.entity.CursoAcademico.COMUNICACION
+                                        com.monserrat.entity.CursoAcademico.PERSONAL_SOCIAL,
+                                        com.monserrat.entity.CursoAcademico.MATEMATICA,
+                                        com.monserrat.entity.CursoAcademico.COMUNICACION
                                 );
                             } else {
                                 materias = List.of(
-                                    com.monserrat.entity.CursoAcademico.MATEMATICA,
-                                    com.monserrat.entity.CursoAcademico.COMUNICACION,
-                                    com.monserrat.entity.CursoAcademico.HISTORIA
+                                        com.monserrat.entity.CursoAcademico.MATEMATICA,
+                                        com.monserrat.entity.CursoAcademico.COMUNICACION,
+                                        com.monserrat.entity.CursoAcademico.HISTORIA
                                 );
                             }
-                            
+
                             for (com.monserrat.entity.CursoAcademico materia : materias) {
                                 boolean yaExiste = asignacionRepo.existsByDocente_DniAndAlumno_DniAndCursoAndGradoAndSeccionAndActivoTrue(
-                                    docente.getDni(), alumno.getDni(), materia, alumno.getGrado(), alumno.getSeccion());
+                                        docente.getDni(), alumno.getDni(), materia, alumno.getGrado(), alumno.getSeccion());
                                 if (!yaExiste) {
                                     AsignacionAcademica asignacion = AsignacionAcademica.builder()
                                             .docente(docente)
@@ -927,7 +918,7 @@ public class DataInitializer {
                         }
                     }
                 }
-                
+
                 if (!asignacionesDefault.isEmpty()) {
                     asignacionRepo.saveAll(asignacionesDefault);
                     log.info("{} asignaciones automáticas creadas basadas en alumnos importados", asignacionesDefault.size());
