@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -94,5 +95,69 @@ class AcademicoServiceTest {
         academicoService.crearAsignacionesPorDocentes(alumno, CursoAcademico.MATEMATICA, "20000001,20000002");
 
         verify(asignacionRepository, times(2)).save(any(AsignacionAcademica.class));
+    }
+
+    @Test
+    void registrarNotaDebeActualizarNotaCuandoYaExisteNotaParaCursoCompetenciaPeriodoYAlumno() {
+        UsuarioAcademico docente = UsuarioAcademico.builder().dni("20000001").rol(RolUsuario.DOCENTE).activo(true).build();
+        UsuarioAcademico alumno = UsuarioAcademico.builder().dni("10000000").rol(RolUsuario.ALUMNO).activo(true).build();
+
+        AsignacionAcademica asignacion = AsignacionAcademica.builder()
+                .docente(docente).alumno(alumno).curso(CursoAcademico.MATEMATICA).activo(true).build();
+
+        com.monserrat.entity.NotaAcademica notaExistente = com.monserrat.entity.NotaAcademica.builder()
+                .id(99L).docente(docente).alumno(alumno).curso(CursoAcademico.MATEMATICA).periodo("BIMESTRE_1").competenciaId("C20").valor(15.0).build();
+
+        com.monserrat.dto.academico.NotaAcademicaRequest request = new com.monserrat.dto.academico.NotaAcademicaRequest();
+        request.setAlumnoDni("10000000");
+        request.setCurso(CursoAcademico.MATEMATICA);
+        request.setPeriodo("BIMESTRE_1");
+        request.setCompetenciaId("C20");
+        request.setValor(18.5);
+        request.setTipoEvaluacion(com.monserrat.entity.TipoEvaluacion.EXAMEN);
+
+        when(usuarioRepository.findByDni("20000001")).thenReturn(Optional.of(docente));
+        when(usuarioRepository.findByDni("10000000")).thenReturn(Optional.of(alumno));
+        when(asignacionRepository.findByDocente_DniAndActivoTrue("20000001")).thenReturn(List.of(asignacion));
+        when(notaRepository.findByAlumno_DniAndCursoAndPeriodoAndCompetenciaId("10000000", CursoAcademico.MATEMATICA, "BIMESTRE_1", "C20")).thenReturn(Optional.of(notaExistente));
+        when(notaRepository.save(any(com.monserrat.entity.NotaAcademica.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        com.monserrat.dto.academico.NotaAcademicaDTO result = academicoService.registrarNota("20000001", request);
+
+        org.assertj.core.api.Assertions.assertThat(result.getValor()).isEqualTo(18.5);
+        verify(notaRepository, times(1)).save(notaExistente);
+    }
+
+    @Test
+    void actualizarNotaDebePermitirCambiarNotaDeOtroDocenteSiElDocenteActualTieneAsignacionActiva() {
+        UsuarioAcademico docenteOriginal = UsuarioAcademico.builder().dni("20000001").rol(RolUsuario.DOCENTE).activo(true).build();
+        UsuarioAcademico docenteNuevo = UsuarioAcademico.builder().dni("20000002").rol(RolUsuario.DOCENTE).activo(true).build();
+        UsuarioAcademico alumno = UsuarioAcademico.builder().dni("10000000").rol(RolUsuario.ALUMNO).activo(true).build();
+
+        AsignacionAcademica asignacionDocenteNuevo = AsignacionAcademica.builder()
+                .docente(docenteNuevo).alumno(alumno).curso(CursoAcademico.MATEMATICA).activo(true).build();
+
+        com.monserrat.entity.NotaAcademica notaExistente = com.monserrat.entity.NotaAcademica.builder()
+                .id(99L).docente(docenteOriginal).alumno(alumno).curso(CursoAcademico.MATEMATICA).periodo("BIMESTRE_1").competenciaId("C20").valor(15.0).build();
+
+        com.monserrat.dto.academico.NotaAcademicaRequest request = new com.monserrat.dto.academico.NotaAcademicaRequest();
+        request.setAlumnoDni("10000000");
+        request.setCurso(CursoAcademico.MATEMATICA);
+        request.setPeriodo("BIMESTRE_1");
+        request.setCompetenciaId("C20");
+        request.setValor(19.0);
+        request.setTipoEvaluacion(com.monserrat.entity.TipoEvaluacion.EXAMEN);
+
+        when(notaRepository.findById(99L)).thenReturn(Optional.of(notaExistente));
+        when(usuarioRepository.findByDni("20000002")).thenReturn(Optional.of(docenteNuevo));
+        when(usuarioRepository.findByDni("10000000")).thenReturn(Optional.of(alumno));
+        when(asignacionRepository.findByDocente_DniAndActivoTrue("20000002")).thenReturn(List.of(asignacionDocenteNuevo));
+        when(notaRepository.save(any(com.monserrat.entity.NotaAcademica.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        com.monserrat.dto.academico.NotaAcademicaDTO result = academicoService.actualizarNota("20000002", 99L, request);
+
+        org.assertj.core.api.Assertions.assertThat(result.getValor()).isEqualTo(19.0);
+        org.assertj.core.api.Assertions.assertThat(notaExistente.getDocente().getDni()).isEqualTo("20000002");
+        verify(notaRepository, times(1)).save(notaExistente);
     }
 }

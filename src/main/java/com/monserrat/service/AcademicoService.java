@@ -311,20 +311,33 @@ public class AcademicoService {
         UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
         exigirAsignacionActiva(docente.getDni(), alumno.getDni(), null);
 
-        AsistenciaAcademica asistencia = AsistenciaAcademica.builder()
-                .docente(docente)
-                .alumno(alumno)
-                .fecha(request.getFecha())
-                .estado(request.getEstado())
-                .observacion(request.getObservacion())
-                .build();
+        LocalDate fecha = request.getFecha();
+        Optional<AsistenciaAcademica> existingAsistencia = asistenciaRepository.findByAlumno_DniAndFecha(
+                alumno.getDni(), fecha
+        );
+
+        AsistenciaAcademica asistencia;
+        if (existingAsistencia.isPresent()) {
+            asistencia = existingAsistencia.get();
+            asistencia.setDocente(docente);
+            asistencia.setEstado(request.getEstado());
+            asistencia.setObservacion(request.getObservacion());
+        } else {
+            asistencia = AsistenciaAcademica.builder()
+                    .docente(docente)
+                    .alumno(alumno)
+                    .fecha(fecha)
+                    .estado(request.getEstado())
+                    .observacion(request.getObservacion())
+                    .build();
+        }
 
         return toAsistenciaDto(asistenciaRepository.save(asistencia));
     }
 
     @Transactional(readOnly = true)
     public List<AsistenciaAcademicaDTO> listarAsistenciasDocente(String docenteDni) {
-        return asistenciaRepository.findByDocente_DniOrderByFechaDesc(docenteDni).stream()
+        return asistenciaRepository.findAsistenciasForDocente(docenteDni).stream()
                 .map(this::toAsistenciaDto)
                 .toList();
     }
@@ -336,16 +349,32 @@ public class AcademicoService {
         CursoAcademico curso = request.getCurso();
         exigirAsignacionActiva(docente.getDni(), alumno.getDni(), curso);
 
-        NotaAcademica nota = NotaAcademica.builder()
-                .docente(docente)
-                .alumno(alumno)
-                .curso(curso)
-                .periodo(normalizarTexto(request.getPeriodo()))
-                .tipoEvaluacion(request.getTipoEvaluacion())
-                .valor(request.getValor())
-                .observacion(request.getObservacion())
-                .competenciaId(request.getCompetenciaId())
-                .build();
+        String periodo = normalizarTexto(request.getPeriodo());
+        String competenciaId = request.getCompetenciaId();
+
+        Optional<NotaAcademica> existingNota = notaRepository.findByAlumno_DniAndCursoAndPeriodoAndCompetenciaId(
+                alumno.getDni(), curso, periodo, competenciaId
+        );
+
+        NotaAcademica nota;
+        if (existingNota.isPresent()) {
+            nota = existingNota.get();
+            nota.setDocente(docente);
+            nota.setValor(request.getValor());
+            nota.setObservacion(request.getObservacion());
+            nota.setTipoEvaluacion(request.getTipoEvaluacion() != null ? request.getTipoEvaluacion() : nota.getTipoEvaluacion());
+        } else {
+            nota = NotaAcademica.builder()
+                    .docente(docente)
+                    .alumno(alumno)
+                    .curso(curso)
+                    .periodo(periodo)
+                    .tipoEvaluacion(request.getTipoEvaluacion() != null ? request.getTipoEvaluacion() : com.monserrat.entity.TipoEvaluacion.EXAMEN)
+                    .valor(request.getValor())
+                    .observacion(request.getObservacion())
+                    .competenciaId(competenciaId)
+                    .build();
+        }
 
         return toNotaDto(notaRepository.save(nota));
     }
@@ -354,16 +383,17 @@ public class AcademicoService {
     public NotaAcademicaDTO actualizarNota(String docenteDni, Long id, NotaAcademicaRequest request) {
         NotaAcademica nota = notaRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota no encontrada"));
-        if (!nota.getDocente().getDni().equals(docenteDni)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes modificar una nota de otro docente");
-        }
+        
+        UsuarioAcademico docente = exigirRol(buscarPorDni(docenteDni), RolUsuario.DOCENTE);
         UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
         CursoAcademico curso = request.getCurso();
         exigirAsignacionActiva(docenteDni, alumno.getDni(), curso);
+
+        nota.setDocente(docente);
         nota.setAlumno(alumno);
         nota.setCurso(curso);
         nota.setPeriodo(normalizarTexto(request.getPeriodo()));
-        nota.setTipoEvaluacion(request.getTipoEvaluacion());
+        nota.setTipoEvaluacion(request.getTipoEvaluacion() != null ? request.getTipoEvaluacion() : nota.getTipoEvaluacion());
         nota.setValor(request.getValor());
         nota.setObservacion(request.getObservacion());
         nota.setCompetenciaId(request.getCompetenciaId());
@@ -372,7 +402,7 @@ public class AcademicoService {
 
     @Transactional(readOnly = true)
     public List<NotaAcademicaDTO> listarNotasDocente(String docenteDni) {
-        return notaRepository.findByDocente_DniOrderByUpdatedAtDesc(docenteDni).stream()
+        return notaRepository.findNotasForDocente(docenteDni).stream()
                 .map(this::toNotaDto)
                 .toList();
     }
