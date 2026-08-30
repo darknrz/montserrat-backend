@@ -348,17 +348,18 @@ public class AcademicoService {
         UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
         CursoAcademico curso = request.getCurso();
         exigirAsignacionActiva(docente.getDni(), alumno.getDni(), curso);
+        exigirAsignacionCompetencia(docente.getDni(), alumno, curso, request.getCompetenciaId());
 
         String periodo = normalizarTexto(request.getPeriodo());
         String competenciaId = request.getCompetenciaId();
 
-        Optional<NotaAcademica> existingNota = notaRepository.findByAlumno_DniAndCursoAndPeriodoAndCompetenciaId(
+        List<NotaAcademica> existingNotas = notaRepository.findByAlumno_DniAndCursoAndPeriodoAndCompetenciaIdOrderByUpdatedAtDesc(
                 alumno.getDni(), curso, periodo, competenciaId
         );
 
         NotaAcademica nota;
-        if (existingNota.isPresent()) {
-            nota = existingNota.get();
+        if (!existingNotas.isEmpty()) {
+            nota = existingNotas.get(0);
             nota.setDocente(docente);
             nota.setValor(request.getValor());
             nota.setObservacion(request.getObservacion());
@@ -388,6 +389,7 @@ public class AcademicoService {
         UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
         CursoAcademico curso = request.getCurso();
         exigirAsignacionActiva(docenteDni, alumno.getDni(), curso);
+        exigirAsignacionCompetencia(docenteDni, alumno, curso, request.getCompetenciaId());
 
         nota.setDocente(docente);
         nota.setAlumno(alumno);
@@ -826,6 +828,41 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
         if (!asignado) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "El alumno o curso no esta asignado a este docente");
+        }
+    }
+
+    private void exigirAsignacionCompetencia(String docenteDni, UsuarioAcademico alumno, CursoAcademico curso, String competenciaId) {
+        if (alumno == null || curso == null || competenciaId == null || competenciaId.isBlank()) {
+            return;
+        }
+
+        com.monserrat.entity.NivelEducativo nivel = alumno.getNivelEducativo();
+        com.monserrat.entity.Grado grado = alumno.getGrado();
+
+        if (nivel == null || grado == null) {
+            return;
+        }
+
+        String codigo = String.format("%s||%s||%s", grado.name(), curso.name(), competenciaId);
+        String nivelStr = nivel.name();
+
+        java.util.Optional<com.monserrat.entity.CatalogoAcademico> mapping = catalogoRepository.findByTipoAndNivelAndCodigo(
+                "DOCENTE_COMPETENCIA", nivelStr, codigo
+        );
+
+        if (mapping.isPresent()) {
+            String dnis = mapping.get().getNombre();
+            java.util.List<String> list = new java.util.ArrayList<>();
+            if (dnis != null && !dnis.isBlank()) {
+                list = java.util.Arrays.stream(dnis.split(","))
+                        .map(String::trim)
+                        .filter(value -> !value.isEmpty())
+                        .collect(Collectors.toList());
+            }
+            if (!list.contains(docenteDni)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "El docente no está asignado a la competencia " + competenciaId + " para este grado y curso.");
+            }
         }
     }
 

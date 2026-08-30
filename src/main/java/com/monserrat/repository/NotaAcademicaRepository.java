@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface NotaAcademicaRepository extends JpaRepository<NotaAcademica, Long> {
     List<NotaAcademica> findByAlumno_DniOrderByPeriodoDescCreatedAtDesc(String dni);
@@ -24,7 +23,7 @@ public interface NotaAcademicaRepository extends JpaRepository<NotaAcademica, Lo
            ") ORDER BY n.updatedAt DESC")
     List<NotaAcademica> findNotasForDocente(@Param("docenteDni") String docenteDni);
 
-    Optional<NotaAcademica> findByAlumno_DniAndCursoAndPeriodoAndCompetenciaId(
+    List<NotaAcademica> findByAlumno_DniAndCursoAndPeriodoAndCompetenciaIdOrderByUpdatedAtDesc(
             String alumnoDni, CursoAcademico curso, String periodo, String competenciaId
     );
 }

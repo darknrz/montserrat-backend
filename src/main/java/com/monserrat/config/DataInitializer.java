@@ -15,6 +15,8 @@ import com.monserrat.repository.CatalogoAcademicoRepository;
 import com.monserrat.repository.ChatbotFaqRepository;
 import com.monserrat.repository.InstitutionRepository;
 import com.monserrat.repository.RedSocialRepository;
+import com.monserrat.repository.AsistenciaAcademicaRepository;
+import com.monserrat.repository.NotaAcademicaRepository;
 import com.monserrat.repository.UsuarioAcademicoRepository;
 import com.monserrat.repository.VideoRepository;
 import lombok.RequiredArgsConstructor;
@@ -62,9 +64,72 @@ public class DataInitializer {
             UsuarioAcademicoRepository usuarioAcademicoRepo,
             AsignacionAcademicaRepository asignacionRepo,
             ChatbotFaqRepository chatbotFaqRepo,
-            CatalogoAcademicoRepository catalogoRepo) {
+            CatalogoAcademicoRepository catalogoRepo,
+            AsistenciaAcademicaRepository asistenciaRepo,
+            NotaAcademicaRepository notaRepo) {
 
         return args -> {
+            // Migrar y fusionar cuentas de Omar Bruno si existe la duplicada 10000013
+            usuarioAcademicoRepo.findByDni("10000013").ifPresent(docenteDuplicado -> {
+                log.info("Fusión detectada para Omar Bruno. Migrando datos de 10000013 a 20000006...");
+                
+                // Asegurar que exista la cuenta destino 20000006
+                UsuarioAcademico docenteDestino = usuarioAcademicoRepo.findByDni("20000006")
+                        .orElseGet(() -> usuarioAcademicoRepo.save(UsuarioAcademico.builder()
+                                .dni("20000006")
+                                .password(passwordEncoder.encode("20000006"))
+                                .nombre("Omar Bruno")
+                                .rol(RolUsuario.DOCENTE)
+                                .nivelEducativo(null)
+                                .especialidad("primaria-secundaria")
+                                .estado(com.monserrat.entity.EstadoUsuario.ACTIVO)
+                                .activo(true)
+                                .debeCambiarContrasena(true)
+                                .build()));
+
+                // 1. Migrar asignaciones
+                asignacionRepo.findByDocente_Dni("10000013").forEach(asig -> {
+                    asig.setDocente(docenteDestino);
+                    asignacionRepo.save(asig);
+                });
+
+                // 2. Migrar notas
+                notaRepo.findByDocente_DniOrderByUpdatedAtDesc("10000013").forEach(nota -> {
+                    nota.setDocente(docenteDestino);
+                    notaRepo.save(nota);
+                });
+
+                // 3. Migrar asistencias
+                asistenciaRepo.findByDocente_DniOrderByFechaDesc("10000013").forEach(asist -> {
+                    asist.setDocente(docenteDestino);
+                    asistenciaRepo.save(asist);
+                });
+
+                // 4. Migrar mapeos en el catálogo académico
+                catalogoRepo.findAll().stream()
+                        .filter(mapping -> "DOCENTE_COMPETENCIA".equals(mapping.getTipo()) && mapping.getNombre() != null)
+                        .forEach(mapping -> {
+                            String nombre = mapping.getNombre();
+                            if (nombre.contains("10000013")) {
+                                String nuevoNombre = nombre.replace("10000013", "20000006");
+                                mapping.setNombre(nuevoNombre);
+                                catalogoRepo.save(mapping);
+                            }
+                        });
+
+                // 5. Eliminar el docente duplicado
+                usuarioAcademicoRepo.delete(docenteDuplicado);
+                log.info("Fusión de Omar Bruno completada con éxito.");
+            });
+
+            // Asegurar que Omar Bruno (20000006) tenga nivel null (Ambos) si ya existe en la BD
+            usuarioAcademicoRepo.findByDni("20000006").ifPresent(docente -> {
+                if (docente.getNivelEducativo() != null) {
+                    docente.setNivelEducativo(null);
+                    usuarioAcademicoRepo.save(docente);
+                    log.info("Nivel educativo de Omar Bruno (20000006) actualizado a null (Ambos).");
+                }
+            });
             if (adminPassword != null && !adminPassword.isBlank()) {
                 adminRepo.findByUsername(adminUsername).ifPresentOrElse(admin -> {
                     admin.setPassword(passwordEncoder.encode(adminPassword));
@@ -154,7 +219,6 @@ public class DataInitializer {
                     UsuarioAcademico.builder().dni("10000010").password(passwordEncoder.encode("10000010")).nombre("Miss Adaluz").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("10000011").password(passwordEncoder.encode("10000011")).nombre("Lourdes Bonilla").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("10000012").password(passwordEncoder.encode("10000012")).nombre("Cristian Magariño").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
-                    UsuarioAcademico.builder().dni("10000013").password(passwordEncoder.encode("10000013")).nombre("Omar Bruno").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("10000014").password(passwordEncoder.encode("10000014")).nombre("Diego").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.PRIMARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build()
             );
             for (UsuarioAcademico docente : docentesPrimaria) {
@@ -175,8 +239,7 @@ public class DataInitializer {
             // y nunca reutiliza un número ya ocupado.
             // ============================================================
             List<UsuarioAcademico> docentesPrimariaActuales = usuarioAcademicoRepo.findAll().stream()
-                    .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) &&
-                            com.monserrat.entity.NivelEducativo.PRIMARIA.equals(u.getNivelEducativo()))
+                    .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) && (u.getNivelEducativo() == com.monserrat.entity.NivelEducativo.PRIMARIA || "primaria-secundaria".equals(u.getEspecialidad())))
                     .sorted(Comparator.comparing(UsuarioAcademico::getDni))
                     .toList();
 
@@ -203,7 +266,7 @@ public class DataInitializer {
                     UsuarioAcademico.builder().dni("20000003").password(passwordEncoder.encode("20000003")).nombre("Miriam Marcelo").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("20000004").password(passwordEncoder.encode("20000004")).nombre("Lourdes Bonilla").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("20000005").password(passwordEncoder.encode("20000005")).nombre("Daniela Ydrogo").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
-                    UsuarioAcademico.builder().dni("20000006").password(passwordEncoder.encode("20000006")).nombre("Omar Bruno").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
+                    UsuarioAcademico.builder().dni("20000006").password(passwordEncoder.encode("20000006")).nombre("Omar Bruno").rol(RolUsuario.DOCENTE).nivelEducativo(null).especialidad("primaria-secundaria").estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("20000007").password(passwordEncoder.encode("20000007")).nombre("Cristian Magariño").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("20000008").password(passwordEncoder.encode("20000008")).nombre("Eladio Magariño").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
                     UsuarioAcademico.builder().dni("20000009").password(passwordEncoder.encode("20000009")).nombre("Jhonatan Carhuancho").rol(RolUsuario.DOCENTE).nivelEducativo(com.monserrat.entity.NivelEducativo.SECUNDARIA).estado(com.monserrat.entity.EstadoUsuario.ACTIVO).activo(true).debeCambiarContrasena(true).build(),
@@ -223,7 +286,7 @@ public class DataInitializer {
             // y solo asigna si el docente aún no tiene código)
             List<UsuarioAcademico> docentesSecundariaActuales = usuarioAcademicoRepo.findAll().stream()
                     .filter(u -> RolUsuario.DOCENTE.equals(u.getRol()) &&
-                            com.monserrat.entity.NivelEducativo.SECUNDARIA.equals(u.getNivelEducativo()))
+                            (com.monserrat.entity.NivelEducativo.SECUNDARIA.equals(u.getNivelEducativo()) || u.getNivelEducativo() == null))
                     .sorted(Comparator.comparing(UsuarioAcademico::getDni))
                     .toList();
             for (UsuarioAcademico docente : docentesSecundariaActuales) {
@@ -494,10 +557,10 @@ public class DataInitializer {
                         Map.entry("QUINTO_PRIMARIA||MATEMATICA||C21", List.of("10000012")),
                         Map.entry("QUINTO_PRIMARIA||MATEMATICA||C22", List.of("10000012")),
                         Map.entry("QUINTO_PRIMARIA||MATEMATICA||C23", List.of("10000006", "10000007")),
-                        Map.entry("SEXTO_PRIMARIA||MATEMATICA||C20", List.of("10000013")),
+                        Map.entry("SEXTO_PRIMARIA||MATEMATICA||C20", List.of("20000006")),
                         Map.entry("SEXTO_PRIMARIA||MATEMATICA||C21", List.of("10000012")),
                         Map.entry("SEXTO_PRIMARIA||MATEMATICA||C22", List.of("10000012")),
-                        Map.entry("SEXTO_PRIMARIA||MATEMATICA||C23", List.of("10000013"))
+                        Map.entry("SEXTO_PRIMARIA||MATEMATICA||C23", List.of("20000006"))
                 );
 
                 int idx = 5000;
