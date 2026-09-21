@@ -30,7 +30,7 @@ public class AcademicoController {
     }
 
     @GetMapping("/configuracion")
-    @PreAuthorize("hasAnyRole('ADMIN', 'ALUMNO', 'DOCENTE')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ALUMNO', 'DOCENTE', 'ADMIN_PENSIONES')")
     public AcademicoConfigDTO obtenerConfiguracion() {
         return academicoConfigService.obtener();
     }
@@ -86,21 +86,58 @@ public class AcademicoController {
     }
 
     @GetMapping("/alumnos")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ADMIN_PENSIONES')")
     public List<UsuarioAcademicoDTO> listarAlumnos() {
         return academicoService.listarAlumnos();
     }
 
     @GetMapping("/pensiones")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
     public List<PensionMensualDTO> listarPensiones(@RequestParam(required = false) Integer anio) {
         return academicoService.listarPensionesMensuales(anio);
     }
 
     @PutMapping("/pensiones")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
     public PensionMensualDTO actualizarPension(@Valid @RequestBody PensionMensualRequest request) {
         return academicoService.actualizarPensionMensual(request);
+    }
+
+    @GetMapping("/matriculas")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public List<MatriculaDTO> listarMatriculas(@RequestParam(required = false) Integer anio) {
+        return academicoService.listarMatriculas(anio);
+    }
+
+    @PutMapping("/matriculas")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public MatriculaDTO actualizarMatricula(@Valid @RequestBody MatriculaRequest request) {
+        return academicoService.actualizarMatricula(request);
+    }
+
+    @GetMapping("/talleres")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public List<TallerDTO> listarTalleres(@RequestParam(required = false) Integer anio) {
+        return academicoService.listarTalleres(anio);
+    }
+
+    @PostMapping("/talleres")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public ResponseEntity<TallerDTO> crearTaller(@Valid @RequestBody TallerRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(academicoService.crearTaller(request));
+    }
+
+    @PutMapping("/talleres/{id}")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public TallerDTO actualizarTaller(@PathVariable Long id, @Valid @RequestBody TallerRequest request) {
+        return academicoService.actualizarTaller(id, request);
+    }
+
+    @DeleteMapping("/talleres/{id}")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public ResponseEntity<Void> eliminarTaller(@PathVariable Long id) {
+        academicoService.eliminarTaller(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/docente/alumnos")
@@ -175,6 +212,18 @@ public ResponseEntity<?> listarNotasDocente(Authentication authentication) {
     @PreAuthorize("hasRole('ALUMNO')")
     public List<PensionMensualDTO> listarPensionesAlumno(Authentication authentication, @RequestParam(required = false) Integer anio) {
         return academicoService.listarPensionesAlumno(authentication.getName(), anio);
+    }
+
+    @GetMapping("/alumno/matricula")
+    @PreAuthorize("hasRole('ALUMNO')")
+    public MatriculaDTO obtenerMatriculaAlumno(Authentication authentication, @RequestParam(required = false) Integer anio) {
+        return academicoService.obtenerMatriculaAlumno(authentication.getName(), anio);
+    }
+
+    @GetMapping("/alumno/talleres")
+    @PreAuthorize("hasRole('ALUMNO')")
+    public List<TallerDTO> listarTalleresAlumno(Authentication authentication) {
+        return academicoService.listarTalleresAlumno(authentication.getName());
     }
 
     @GetMapping("/asignaciones")

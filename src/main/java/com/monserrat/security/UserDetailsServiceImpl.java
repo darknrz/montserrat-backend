@@ -38,8 +38,26 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         return User.builder()
                 .username(admin.getUsername())
                 .password(admin.getPassword())
-                .authorities(List.of(new SimpleGrantedAuthority("ROLE_" + admin.getRol())))
+                .authorities(authoritiesForAdminRol(admin.getRol()))
                 .build();
+    }
+
+    /**
+     * El SUPER_ADMIN recibe también ROLE_ADMIN y ROLE_ADMIN_PENSIONES para que
+     * herede automáticamente todos los permisos de los otros dos tipos de admin
+     * sin tener que repetir cada regla de autorización.
+     */
+    private List<SimpleGrantedAuthority> authoritiesForAdminRol(String rol) {
+        if ("SUPER_ADMIN".equals(rol)) {
+            return List.of(
+                    new SimpleGrantedAuthority("ROLE_SUPER_ADMIN"),
+                    new SimpleGrantedAuthority("ROLE_ADMIN"),
+                    new SimpleGrantedAuthority("ROLE_ADMIN_PENSIONES"));
+        }
+        if ("ADMIN_PENSIONES".equals(rol)) {
+            return List.of(new SimpleGrantedAuthority("ROLE_ADMIN_PENSIONES"));
+        }
+        return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
     }
 
     private UserDetails buildAcademicUser(UsuarioAcademico usuario) {

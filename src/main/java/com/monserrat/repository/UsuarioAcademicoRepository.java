@@ -23,6 +23,7 @@ public interface UsuarioAcademicoRepository extends JpaRepository<UsuarioAcademi
     boolean existsByCodigoChatbotIgnoreCase(String codigoChatbot);
     Optional<UsuarioAcademico> findByCodigoChatbotIgnoreCase(String codigoChatbot);
     List<UsuarioAcademico> findByRolAndActivoTrue(RolUsuario rol);
+    List<UsuarioAcademico> findByRolAndGradoAndActivoTrue(RolUsuario rol, Grado grado);
     List<UsuarioAcademico> findByRolAndNivelEducativoAndGradoAndSeccionAndActivoTrue(
             RolUsuario rol,
             NivelEducativo nivelEducativo,

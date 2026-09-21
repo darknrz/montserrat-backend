@@ -10,17 +10,21 @@ import com.monserrat.entity.EstadoUsuario;
 import com.monserrat.entity.Grado;
 import com.monserrat.entity.NivelEducativo;
 import com.monserrat.entity.NotaAcademica;
+import com.monserrat.entity.Matricula;
 import com.monserrat.entity.PensionMensual;
 import com.monserrat.entity.PeriodoBimestre;
 import com.monserrat.entity.RolUsuario;
 import com.monserrat.entity.Seccion;
+import com.monserrat.entity.Taller;
 import com.monserrat.entity.UsuarioAcademico;
 import com.monserrat.service.AcademicoServiceHelper;
 import com.monserrat.repository.AsignacionAcademicaRepository;
 import com.monserrat.repository.AsistenciaAcademicaRepository;
+import com.monserrat.repository.MatriculaRepository;
 import com.monserrat.repository.NotaAcademicaRepository;
 import com.monserrat.repository.PensionMensualRepository;
 import com.monserrat.repository.PeriodoBimestreRepository;
+import com.monserrat.repository.TallerRepository;
 import com.monserrat.repository.UsuarioAcademicoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -54,6 +58,8 @@ public class AcademicoService {
     private final AsistenciaAcademicaRepository asistenciaRepository;
     private final NotaAcademicaRepository notaRepository;
     private final PensionMensualRepository pensionMensualRepository;
+    private final MatriculaRepository matriculaRepository;
+    private final TallerRepository tallerRepository;
     private final PeriodoBimestreRepository periodoBimestreRepository;
     private final PasswordEncoder passwordEncoder;
     private final com.monserrat.repository.CatalogoAcademicoRepository catalogoRepository;
@@ -269,6 +275,8 @@ public class AcademicoService {
             asistenciaRepository.deleteByAlumno_Dni(dni);
             notaRepository.deleteByAlumno_Dni(dni);
             pensionMensualRepository.deleteByAlumno_Dni(dni);
+            matriculaRepository.deleteByAlumno_Dni(dni);
+            tallerRepository.deleteByAlumno_Dni(dni);
         }
         usuarioRepository.delete(usuario);
     }
@@ -683,6 +691,136 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
         return toPensionMensualDto(alumno, request.getAnio(), request.getMes(), saved, true);
     }
 
+    // ============ MÉTODOS PARA MATRÍCULA (pago único anual) ============
+
+    @Transactional(readOnly = true)
+    public List<MatriculaDTO> listarMatriculas(Integer anio) {
+        int year = anio == null ? java.time.Year.now().getValue() : anio;
+        List<UsuarioAcademico> alumnos = usuarioRepository.findByRolAndActivoTrue(RolUsuario.ALUMNO).stream()
+                .sorted(Comparator.comparing(UsuarioAcademico::getNombre, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        java.util.Map<String, Matricula> matriculasPorAlumno = matriculaRepository.findByAnio(year).stream()
+                .collect(Collectors.toMap(m -> m.getAlumno().getDni(), m -> m, (a, b) -> a));
+        return alumnos.stream()
+                .map(alumno -> toMatriculaDto(alumno, year, matriculasPorAlumno.get(alumno.getDni())))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public MatriculaDTO obtenerMatriculaAlumno(String alumnoDni, Integer anio) {
+        int year = anio == null ? java.time.Year.now().getValue() : anio;
+        UsuarioAcademico alumno = exigirRol(buscarPorDni(alumnoDni), RolUsuario.ALUMNO);
+        Matricula matricula = matriculaRepository.findByAlumno_DniAndAnio(alumno.getDni(), year).orElse(null);
+        return toMatriculaDto(alumno, year, matricula);
+    }
+
+    @Transactional
+    public MatriculaDTO actualizarMatricula(MatriculaRequest request) {
+        UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
+        Matricula matricula = matriculaRepository.findByAlumno_DniAndAnio(alumno.getDni(), request.getAnio())
+                .orElseGet(() -> Matricula.builder()
+                        .alumno(alumno)
+                        .anio(request.getAnio())
+                        .build());
+        matricula.setMonto(request.getMonto());
+        matricula.setPagada(Boolean.TRUE.equals(request.getPagada()));
+        matricula.setObservacion(request.getObservacion());
+        Matricula saved = matriculaRepository.save(matricula);
+        return toMatriculaDto(alumno, request.getAnio(), saved);
+    }
+
+    private MatriculaDTO toMatriculaDto(UsuarioAcademico alumno, Integer anio, Matricula matricula) {
+        return MatriculaDTO.builder()
+                .id(matricula == null ? null : matricula.getId())
+                .alumnoDni(alumno.getDni())
+                .alumnoCodigo(alumno.getCodigo())
+                .alumnoNombre(alumno.getNombre())
+                .nivelEducativo(alumno.getNivelEducativo())
+                .grado(alumno.getGrado())
+                .seccion(alumno.getSeccion())
+                .anio(anio)
+                .monto(matricula == null ? null : matricula.getMonto())
+                .pagada(matricula != null && Boolean.TRUE.equals(matricula.getPagada()))
+                .observacion(matricula == null ? null : matricula.getObservacion())
+                .actualizadoEn(matricula == null ? null : matricula.getUpdatedAt())
+                .build();
+    }
+
+    // ============ MÉTODOS PARA TALLERES (lista libre por alumno) ============
+
+    @Transactional(readOnly = true)
+    public List<TallerDTO> listarTalleres(Integer anio) {
+        List<Taller> talleres = anio == null
+                ? tallerRepository.findAllByOrderByAlumno_NombreAsc()
+                : tallerRepository.findByAnioOrderByAlumno_NombreAsc(anio);
+        return talleres.stream().map(this::toTallerDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TallerDTO> listarTalleresAlumno(String alumnoDni) {
+        exigirRol(buscarPorDni(alumnoDni), RolUsuario.ALUMNO);
+        return tallerRepository.findByAlumno_DniOrderByAnioDesc(alumnoDni).stream()
+                .map(this::toTallerDto)
+                .toList();
+    }
+
+    @Transactional
+    public TallerDTO crearTaller(TallerRequest request) {
+        UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
+        Taller taller = Taller.builder()
+                .alumno(alumno)
+                .anio(request.getAnio())
+                .nombre(request.getNombre())
+                .monto(request.getMonto())
+                .pagada(Boolean.TRUE.equals(request.getPagada()))
+                .observacion(request.getObservacion())
+                .build();
+        return toTallerDto(tallerRepository.save(taller));
+    }
+
+    @Transactional
+    public TallerDTO actualizarTaller(Long id, TallerRequest request) {
+        Taller taller = tallerRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Taller no encontrado"));
+        if (request.getAlumnoDni() != null && !request.getAlumnoDni().equals(taller.getAlumno().getDni())) {
+            UsuarioAcademico alumno = exigirRol(buscarPorDni(request.getAlumnoDni()), RolUsuario.ALUMNO);
+            taller.setAlumno(alumno);
+        }
+        taller.setAnio(request.getAnio());
+        taller.setNombre(request.getNombre());
+        taller.setMonto(request.getMonto());
+        taller.setPagada(Boolean.TRUE.equals(request.getPagada()));
+        taller.setObservacion(request.getObservacion());
+        return toTallerDto(tallerRepository.save(taller));
+    }
+
+    @Transactional
+    public void eliminarTaller(Long id) {
+        Taller taller = tallerRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Taller no encontrado"));
+        tallerRepository.delete(taller);
+    }
+
+    private TallerDTO toTallerDto(Taller taller) {
+        UsuarioAcademico alumno = taller.getAlumno();
+        return TallerDTO.builder()
+                .id(taller.getId())
+                .alumnoDni(alumno.getDni())
+                .alumnoCodigo(alumno.getCodigo())
+                .alumnoNombre(alumno.getNombre())
+                .nivelEducativo(alumno.getNivelEducativo())
+                .grado(alumno.getGrado())
+                .seccion(alumno.getSeccion())
+                .anio(taller.getAnio())
+                .nombre(taller.getNombre())
+                .monto(taller.getMonto())
+                .pagada(Boolean.TRUE.equals(taller.getPagada()))
+                .observacion(taller.getObservacion())
+                .creadoEn(taller.getCreatedAt())
+                .actualizadoEn(taller.getUpdatedAt())
+                .build();
+    }
+
     // ============ MÉTODOS PARA GESTIÓN DE PERÍODOS BIMESTRALES ============
 
     @Transactional(readOnly = true)
@@ -986,6 +1124,12 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
             long pensiones = pensionMensualRepository.countByAlumno_Dni(dni);
             if (pensiones > 0)
                 dependencias.add(pensiones + " pensiones");
+            long matriculas = matriculaRepository.countByAlumno_Dni(dni);
+            if (matriculas > 0)
+                dependencias.add(matriculas + " matriculas");
+            long talleres = tallerRepository.countByAlumno_Dni(dni);
+            if (talleres > 0)
+                dependencias.add(talleres + " talleres");
         }
 
         if (dependencias.isEmpty()) {
@@ -1284,13 +1428,35 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
             return;
         }
 
-        List<AsignacionAcademica> asignacionesDocente = asignacionRepository.findByDocente_DniAndActivoTrue(docenteDni);
-        if (!asignacionesDocente.isEmpty()) {
-            return;
-        }
+        sincronizarAsignacionesCatalogoParaDocente(docente.getDni());
+    }
 
-        usuarioRepository.findByRolAndActivoTrue(RolUsuario.ALUMNO)
-                .forEach(this::replicarAsignacionesDeAulaParaAlumno);
+    private void sincronizarAsignacionesCatalogoParaDocente(String docenteDni) {
+        catalogoRepository.findAll().stream()
+                .filter(mapping -> "DOCENTE_COMPETENCIA".equals(mapping.getTipo()))
+                .filter(mapping -> Boolean.TRUE.equals(mapping.getActivo()))
+                .filter(mapping -> mapping.getCodigo() != null && mapping.getNombre() != null)
+                .filter(mapping -> Arrays.stream(mapping.getNombre().split(","))
+                        .map(String::trim)
+                        .anyMatch(docenteDni::equals))
+                .forEach(mapping -> {
+                    String[] parts = mapping.getCodigo().split("\\|\\|");
+                    if (parts.length < 2) {
+                        return;
+                    }
+
+                    Grado grado;
+                    CursoAcademico curso;
+                    try {
+                        grado = Grado.valueOf(parts[0]);
+                        curso = CursoAcademico.valueOf(parts[1]);
+                    } catch (IllegalArgumentException e) {
+                        return;
+                    }
+
+                    usuarioRepository.findByRolAndGradoAndActivoTrue(RolUsuario.ALUMNO, grado)
+                            .forEach(alumno -> crearAsignacionesPorDocentes(alumno, curso, docenteDni));
+                });
     }
 
 
@@ -1318,7 +1484,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
             String gradePrefix = alumno.getGrado().name() + "||";
             java.util.List<com.monserrat.entity.CatalogoAcademico> mappings = catalogoRepository.findAll();
             
-            java.util.Map<CursoAcademico, String> cursoDocenteDniMap = new java.util.HashMap<>();
+            java.util.Map<CursoAcademico, java.util.Set<String>> cursoDocenteDniMap = new java.util.HashMap<>();
             for (com.monserrat.entity.CatalogoAcademico mapping : mappings) {
                 if ("DOCENTE_COMPETENCIA".equals(mapping.getTipo()) && 
                     Boolean.TRUE.equals(mapping.getActivo()) && 
@@ -1329,9 +1495,16 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                     if (parts.length >= 2) {
                         try {
                             CursoAcademico curso = CursoAcademico.valueOf(parts[1]);
-                            String docenteDni = mapping.getNombre();
-                            if (docenteDni != null && !docenteDni.isBlank()) {
-                                cursoDocenteDniMap.put(curso, docenteDni);
+                            String docentesCsv = mapping.getNombre();
+                            if (docentesCsv != null && !docentesCsv.isBlank()) {
+                                java.util.Set<String> docentesCurso = cursoDocenteDniMap.computeIfAbsent(
+                                        curso,
+                                        ignored -> new java.util.LinkedHashSet<>()
+                                );
+                                Arrays.stream(docentesCsv.split(","))
+                                        .map(String::trim)
+                                        .filter(value -> !value.isBlank())
+                                        .forEach(docentesCurso::add);
                             }
                         } catch (IllegalArgumentException e) {
                             // Ignorar si el curso no es válido en el enum
@@ -1341,8 +1514,8 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
             }
 
             // Crear asignaciones del catálogo para todos los docentes listados
-            for (java.util.Map.Entry<CursoAcademico, String> entry : cursoDocenteDniMap.entrySet()) {
-                crearAsignacionesPorDocentes(alumno, entry.getKey(), entry.getValue());
+            for (java.util.Map.Entry<CursoAcademico, java.util.Set<String>> entry : cursoDocenteDniMap.entrySet()) {
+                crearAsignacionesPorDocentes(alumno, entry.getKey(), String.join(",", entry.getValue()));
             }
         }
 

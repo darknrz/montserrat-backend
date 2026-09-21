@@ -57,7 +57,7 @@ public class SecurityConfig {
                         // ── Auth: login público ──
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        .requestMatchers("/api/academico/**").hasAnyRole("ADMIN", "DOCENTE", "ALUMNO")
+                        .requestMatchers("/api/academico/**").hasAnyRole("ADMIN", "DOCENTE", "ALUMNO", "ADMIN_PENSIONES", "SUPER_ADMIN")
                         .requestMatchers("/api/media/**").hasAnyRole("ADMIN", "DOCENTE", "ALUMNO")
 
                         // ── Todo lo demás requiere ADMIN autenticado ──

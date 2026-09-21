@@ -119,7 +119,9 @@ class AcademicoServiceTest {
         when(usuarioRepository.findByDni("20000001")).thenReturn(Optional.of(docente));
         when(usuarioRepository.findByDni("10000000")).thenReturn(Optional.of(alumno));
         when(asignacionRepository.findByDocente_DniAndActivoTrue("20000001")).thenReturn(List.of(asignacion));
-        when(notaRepository.findByAlumno_DniAndCursoAndPeriodoAndCompetenciaId("10000000", CursoAcademico.MATEMATICA, "BIMESTRE_1", "C20")).thenReturn(Optional.of(notaExistente));
+        when(notaRepository.findByAlumno_DniAndCursoAndPeriodoAndCompetenciaIdOrderByUpdatedAtDesc(
+                "10000000", CursoAcademico.MATEMATICA, "BIMESTRE_1", "C20"))
+                .thenReturn(List.of(notaExistente));
         when(notaRepository.save(any(com.monserrat.entity.NotaAcademica.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         com.monserrat.dto.academico.NotaAcademicaDTO result = academicoService.registrarNota("20000001", request);
