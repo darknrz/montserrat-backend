@@ -1459,20 +1459,32 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                         .anyMatch(docenteDni::equals))
                 .forEach(mapping -> {
                     String[] parts = mapping.getCodigo().split("\\|\\|");
-                    if (parts.length < 2) {
+                    if (parts.length < 3) {
                         return;
                     }
 
+                    // El codigo puede ser "grado||curso||competencia" (general) o
+                    // "grado||seccion||curso||competencia" (fino, cuando el grado tiene grupos
+                    // como Anual/Letras/Ciencias/Ciclado I/II). Con 4 partes, el grupo va en el
+                    // indice 1 y el curso se corre al indice 2.
                     Grado grado;
                     CursoAcademico curso;
+                    Seccion seccion = null;
                     try {
                         grado = Grado.valueOf(parts[0]);
-                        curso = CursoAcademico.valueOf(parts[1]);
+                        if (parts.length >= 4) {
+                            seccion = Seccion.valueOf(parts[1]);
+                            curso = CursoAcademico.valueOf(parts[2]);
+                        } else {
+                            curso = CursoAcademico.valueOf(parts[1]);
+                        }
                     } catch (IllegalArgumentException e) {
                         return;
                     }
 
-                    usuarioRepository.findByRolAndGradoAndActivoTrue(RolUsuario.ALUMNO, grado)
+                    Seccion seccionFiltro = seccion;
+                    usuarioRepository.findByRolAndGradoAndActivoTrue(RolUsuario.ALUMNO, grado).stream()
+                            .filter(alumno -> seccionFiltro == null || seccionFiltro.equals(alumno.getSeccion()))
                             .forEach(alumno -> crearAsignacionesPorDocentes(alumno, curso, docenteDni));
                 });
     }
