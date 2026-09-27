@@ -410,6 +410,18 @@ public class AcademicoService {
         return toNotaDto(notaRepository.save(nota));
     }
 
+    @Transactional
+    public void eliminarNota(String docenteDni, Long id) {
+        NotaAcademica nota = notaRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota no encontrada"));
+
+        UsuarioAcademico alumno = nota.getAlumno();
+        exigirAsignacionActiva(docenteDni, alumno.getDni(), nota.getCurso());
+        exigirAsignacionCompetencia(docenteDni, alumno, nota.getCurso(), nota.getCompetenciaId());
+
+        notaRepository.delete(nota);
+    }
+
     @Transactional(readOnly = true)
     public List<NotaAcademicaDTO> listarNotasDocente(String docenteDni) {
         return notaRepository.findNotasForDocente(docenteDni).stream()
@@ -981,12 +993,18 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
             return;
         }
 
-        String codigo = String.format("%s||%s||%s", grado.name(), curso.name(), competenciaId);
         String nivelStr = nivel.name();
+        com.monserrat.entity.Seccion seccion = alumno.getSeccion();
 
-        java.util.Optional<com.monserrat.entity.CatalogoAcademico> mapping = catalogoRepository.findByTipoAndNivelAndCodigo(
-                "DOCENTE_COMPETENCIA", nivelStr, codigo
-        );
+        java.util.Optional<com.monserrat.entity.CatalogoAcademico> mapping = java.util.Optional.empty();
+        if (seccion != null) {
+            String codigoFino = String.format("%s||%s||%s||%s", grado.name(), seccion.name(), curso.name(), competenciaId);
+            mapping = catalogoRepository.findByTipoAndNivelAndCodigo("DOCENTE_COMPETENCIA", nivelStr, codigoFino);
+        }
+        if (mapping.isEmpty()) {
+            String codigo = String.format("%s||%s||%s", grado.name(), curso.name(), competenciaId);
+            mapping = catalogoRepository.findByTipoAndNivelAndCodigo("DOCENTE_COMPETENCIA", nivelStr, codigo);
+        }
 
         if (mapping.isPresent()) {
             String dnis = mapping.get().getNombre();

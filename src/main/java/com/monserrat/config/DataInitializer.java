@@ -1198,9 +1198,11 @@ public class DataInitializer {
                         CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("3RO_PRIM").nombre("3ro prim").activo(true).orden(3).build(),
                         CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("4TO_PRIM").nombre("4to prim").activo(true).orden(4).build(),
                         CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("PREFORMATIVO").nombre("preformativo").activo(true).orden(5).build(),
-                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("CICLADO").nombre("ciclado").activo(true).orden(6).build(),
-                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("ANUAL").nombre("anual").activo(true).orden(7).build(),
-                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("LETRAS_CIENCIAS").nombre("Letras/Ciencias").activo(true).orden(8).build()
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("CICLADO_I").nombre("Ciclado I").activo(true).orden(6).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("CICLADO_II").nombre("Ciclado II").activo(true).orden(7).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("ANUAL").nombre("anual").activo(true).orden(8).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("LETRAS").nombre("Letras").activo(true).orden(9).build(),
+                        CatalogoAcademico.builder().tipo("NIVEL_ACADEMICO").nivel("GLOBAL").codigo("CIENCIAS").nombre("Ciencias").activo(true).orden(10).build()
                 );
                 catalogoRepo.saveAll(niveles);
                 log.info("{} niveles académicos creados por defecto", niveles.size());

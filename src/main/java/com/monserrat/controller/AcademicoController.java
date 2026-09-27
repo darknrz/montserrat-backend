@@ -190,6 +190,13 @@ public ResponseEntity<?> listarNotasDocente(Authentication authentication) {
         return academicoService.actualizarNota(authentication.getName(), id, request);
     }
 
+    @DeleteMapping("/docente/notas/{id}")
+    @PreAuthorize("hasRole('DOCENTE')")
+    public ResponseEntity<Void> eliminarNota(Authentication authentication, @PathVariable Long id) {
+        academicoService.eliminarNota(authentication.getName(), id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/alumno/notas")
     @PreAuthorize("hasRole('ALUMNO')")
     public List<NotaAcademicaDTO> listarNotasAlumno(Authentication authentication) {
