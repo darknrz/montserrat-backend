@@ -1509,6 +1509,12 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                 .build();
     }
     private void replicarAsignacionesDeAulaParaAlumno(UsuarioAcademico alumno) {
+        // Cursos que ya se resuelven mediante el catalogo (paso 1). El paso 2 (aula) no debe
+        // tocarlos: es un mapa de un solo docente por curso, pensado para el modelo antiguo de
+        // "un docente por aula", y pisaria con un solo docente "de un companero" un curso que el
+        // catalogo ya asigna correctamente a uno o varios docentes por competencia.
+        java.util.Set<CursoAcademico> cursosDesdeCatalogo = new java.util.HashSet<>();
+
         // 1. Replicar desde docentes por competencia en el catálogo (fuente de verdad autoritativa)
         if (alumno.getGrado() != null) {
             String gradePrefix = alumno.getGrado().name() + "||";
@@ -1560,15 +1566,21 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
             for (java.util.Map.Entry<CursoAcademico, java.util.Set<String>> entry : cursoDocenteDniMap.entrySet()) {
                 crearAsignacionesPorDocentes(alumno, entry.getKey(), String.join(",", entry.getValue()));
             }
+            cursosDesdeCatalogo.addAll(cursoDocenteDniMap.keySet());
         }
 
-        // 2. Replicar desde asignaciones de aula existentes (como fallback secundario)
+        // 2. Replicar desde asignaciones de aula existentes (como fallback secundario, solo para
+        // cursos que el catalogo no cubre: p.ej. aulas de primaria asignadas directamente por
+        // "asignar aula" sin pasar por el catalogo de competencias)
         List<AsignacionAcademica> asignacionesExistentes = asignacionRepository
                 .findByNivelEducativoAndGradoAndSeccionAndActivoTrue(
                         alumno.getNivelEducativo(), alumno.getGrado(), alumno.getSeccion());
 
         java.util.Map<CursoAcademico, UsuarioAcademico> cursoDocenteMap = new java.util.HashMap<>();
         for (AsignacionAcademica asig : asignacionesExistentes) {
+            if (cursosDesdeCatalogo.contains(asig.getCurso())) {
+                continue;
+            }
             cursoDocenteMap.put(asig.getCurso(), asig.getDocente());
         }
 
