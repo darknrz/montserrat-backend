@@ -1522,9 +1522,22 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                     mapping.getCodigo().startsWith(gradePrefix)) {
                     
                     String[] parts = mapping.getCodigo().split("\\|\\|");
-                    if (parts.length >= 2) {
+                    if (parts.length >= 3) {
                         try {
-                            CursoAcademico curso = CursoAcademico.valueOf(parts[1]);
+                            // Igual que en sincronizarAsignacionesCatalogoParaDocente: el codigo puede ser
+                            // "grado||curso||competencia" (general) o "grado||seccion||curso||competencia"
+                            // (fino, para grados con grupo). Con 4 partes, solo aplica si coincide con la
+                            // seccion/grupo actual del alumno.
+                            CursoAcademico curso;
+                            if (parts.length >= 4) {
+                                Seccion seccionClave = Seccion.valueOf(parts[1]);
+                                if (!seccionClave.equals(alumno.getSeccion())) {
+                                    continue;
+                                }
+                                curso = CursoAcademico.valueOf(parts[2]);
+                            } else {
+                                curso = CursoAcademico.valueOf(parts[1]);
+                            }
                             String docentesCsv = mapping.getNombre();
                             if (docentesCsv != null && !docentesCsv.isBlank()) {
                                 java.util.Set<String> docentesCurso = cursoDocenteDniMap.computeIfAbsent(
@@ -1537,7 +1550,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                                         .forEach(docentesCurso::add);
                             }
                         } catch (IllegalArgumentException e) {
-                            // Ignorar si el curso no es válido en el enum
+                            // Ignorar si el curso o la seccion no son validos en el enum
                         }
                     }
                 }
