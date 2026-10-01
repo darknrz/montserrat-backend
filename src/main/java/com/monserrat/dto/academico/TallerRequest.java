@@ -1,5 +1,6 @@
 package com.monserrat.dto.academico;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +23,7 @@ public class TallerRequest {
     private String nombre;
 
     @NotNull
+    @DecimalMin("0.00")
     private BigDecimal monto;
 
     private Boolean pagada;

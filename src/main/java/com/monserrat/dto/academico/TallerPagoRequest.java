@@ -1,8 +1,6 @@
 package com.monserrat.dto.academico;
 
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -10,19 +8,18 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 @Data
-public class MatriculaRequest {
+public class TallerPagoRequest {
     @NotBlank
     private String alumnoDni;
 
     @NotNull
-    @Min(2000)
-    @Max(2100)
-    private Integer anio;
+    private Long catalogoId;
 
+    // Monto cancelado por el alumno para ese taller (>= 0).
     @DecimalMin("0.00")
-    private BigDecimal monto;
+    private BigDecimal montoPagado;
 
-    @NotNull
+    // Si se envia, fuerza el estado; si no, se deduce de montoPagado >= monto.
     private Boolean pagada;
 
     private String observacion;

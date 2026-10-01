@@ -8,22 +8,22 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
-public class MatriculaRequest {
-    @NotBlank
-    private String alumnoDni;
-
+public class TallerCatalogoRequest {
     @NotNull
     @Min(2000)
     @Max(2100)
     private Integer anio;
 
+    @NotBlank
+    private String nombre;
+
+    @NotNull
     @DecimalMin("0.00")
     private BigDecimal monto;
 
-    @NotNull
-    private Boolean pagada;
-
-    private String observacion;
+    // "SALON:CICLADO I" | "GRADO:SEGUNDO_SECUNDARIA"
+    private List<String> aplicaA;
 }

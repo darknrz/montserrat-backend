@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface RedSocialRepository extends JpaRepository<RedSocial, Long> {
     List<RedSocial> findByActivoTrueOrderByOrdenAsc();
+    List<RedSocial> findAllByOrderByOrdenAscIdAsc();
 }

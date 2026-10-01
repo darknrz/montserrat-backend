@@ -5,48 +5,41 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
+/**
+ * Taller fijo y unico (nombre + monto) por anio. Se aplica automaticamente a
+ * todos los alumnos de los salones/grados indicados en aplicaA.
+ * Tokens: "SALON:CICLADO I" o "GRADO:SEGUNDO_SECUNDARIA".
+ */
 @Entity
-@Table(name = "talleres")
-@Data
+@Table(name = "taller_catalogo")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Taller {
+public class TallerCatalogo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "alumno_id", nullable = false)
-    private UsuarioAcademico alumno;
-
     @Column(nullable = false)
     private Integer anio;
 
-    // Detalle del taller (ej. "Taller de Robotica", "Danza")
     @Column(nullable = false, length = 150)
     private String nombre;
 
     @Column(nullable = false)
     private BigDecimal monto;
 
-    // Taller fijo del catalogo al que pertenece este registro (null = registro antiguo por alumno).
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "catalogo_id")
-    private TallerCatalogo catalogo;
-
-    // Monto cancelado hasta el momento por el alumno.
-    @Column
-    private BigDecimal montoPagado;
-
-    @Column(nullable = false)
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "taller_catalogo_aplica", joinColumns = @JoinColumn(name = "catalogo_id"))
+    @Column(name = "destino", length = 60)
     @Builder.Default
-    private Boolean pagada = false;
-
-    @Column(length = 200)
-    private String observacion;
+    private Set<String> aplicaA = new LinkedHashSet<>();
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

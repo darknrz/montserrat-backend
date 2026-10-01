@@ -4,6 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum Grado {
+    INICIAL("Inicial"),
     PRIMERO_PRIMARIA("1ro Primaria"),
     SEGUNDO_PRIMARIA("2do Primaria"),
     TERCERO_PRIMARIA("3ro Primaria"),

@@ -22,6 +22,7 @@ public class AcademicoController {
 
     private final AcademicoService academicoService;
     private final com.monserrat.service.AcademicoConfigService academicoConfigService;
+    private final com.monserrat.service.TallerService tallerService;
 
     @GetMapping("/usuarios")
     @PreAuthorize("hasRole('ADMIN')")
@@ -113,6 +114,37 @@ public class AcademicoController {
     @PreAuthorize("hasRole('ADMIN_PENSIONES')")
     public MatriculaDTO actualizarMatricula(@Valid @RequestBody MatriculaRequest request) {
         return academicoService.actualizarMatricula(request);
+    }
+
+    @GetMapping("/talleres/catalogo")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public List<TallerCatalogoDTO> listarCatalogoTalleres(@RequestParam Integer anio) {
+        return tallerService.listarCatalogo(anio);
+    }
+
+    @PostMapping("/talleres/catalogo")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public ResponseEntity<TallerCatalogoDTO> crearCatalogoTaller(@Valid @RequestBody TallerCatalogoRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(tallerService.crear(request));
+    }
+
+    @PutMapping("/talleres/catalogo/{id}")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public TallerCatalogoDTO actualizarCatalogoTaller(@PathVariable Long id, @Valid @RequestBody TallerCatalogoRequest request) {
+        return tallerService.actualizar(id, request);
+    }
+
+    @DeleteMapping("/talleres/catalogo/{id}")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public ResponseEntity<Void> eliminarCatalogoTaller(@PathVariable Long id) {
+        tallerService.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/talleres/pago")
+    @PreAuthorize("hasRole('ADMIN_PENSIONES')")
+    public TallerDTO registrarPagoTaller(@Valid @RequestBody TallerPagoRequest request) {
+        return tallerService.registrarPago(request);
     }
 
     @GetMapping("/talleres")
@@ -230,7 +262,7 @@ public ResponseEntity<?> listarNotasDocente(Authentication authentication) {
     @GetMapping("/alumno/talleres")
     @PreAuthorize("hasRole('ALUMNO')")
     public List<TallerDTO> listarTalleresAlumno(Authentication authentication) {
-        return academicoService.listarTalleresAlumno(authentication.getName());
+        return tallerService.listarParaAlumno(authentication.getName());
     }
 
     @GetMapping("/asignaciones")

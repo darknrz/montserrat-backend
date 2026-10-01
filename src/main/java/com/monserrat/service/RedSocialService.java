@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +23,24 @@ public class RedSocialService {
                 .stream().map(this::toDTO).toList();
     }
 
+    public List<RedSocialDTO> getAllAdmin() {
+        return redSocialRepository.findAllByOrderByOrdenAscIdAsc().stream().map(this::toDTO).toList();
+    }
+
+    @Transactional
+    public void reorder(List<Long> ids) {
+        Map<Long, RedSocial> byId = new HashMap<>();
+        redSocialRepository.findAllById(ids).forEach(r -> byId.put(r.getId(), r));
+        int i = 0;
+        for (Long id : ids) {
+            RedSocial r = byId.get(id);
+            if (r != null) {
+                r.setOrden(i++);
+                redSocialRepository.save(r);
+            }
+        }
+    }
+
     public RedSocialDTO getById(Long id) {
         return toDTO(findOrThrow(id));
     }
@@ -31,7 +51,7 @@ public class RedSocialService {
                 .nombre(dto.getNombre())
                 .icono(dto.getIcono())
                 .url(dto.getUrl())
-                .orden(dto.getOrden() != null ? dto.getOrden() : 0)
+                .orden(redSocialRepository.findAllByOrderByOrdenAscIdAsc().stream().mapToInt(r -> r.getOrden() != null ? r.getOrden() : 0).max().orElse(-1) + 1)
                 .activo(dto.getActivo() != null ? dto.getActivo() : true)
                 .build();
         return toDTO(redSocialRepository.save(rs));
@@ -43,16 +63,13 @@ public class RedSocialService {
         rs.setNombre(dto.getNombre());
         rs.setIcono(dto.getIcono());
         rs.setUrl(dto.getUrl());
-        if (dto.getOrden() != null) rs.setOrden(dto.getOrden());
         if (dto.getActivo() != null) rs.setActivo(dto.getActivo());
         return toDTO(redSocialRepository.save(rs));
     }
 
     @Transactional
     public void delete(Long id) {
-        RedSocial rs = findOrThrow(id);
-        rs.setActivo(false);
-        redSocialRepository.save(rs);
+        redSocialRepository.delete(findOrThrow(id));
     }
 
     private RedSocial findOrThrow(Long id) {

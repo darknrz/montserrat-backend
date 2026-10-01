@@ -69,4 +69,17 @@ public class RedSocialController {
         redSocialService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<RedSocialDTO>> getAllAdmin() {
+        return ResponseEntity.ok(redSocialService.getAllAdmin());
+    }
+
+    @PutMapping("/reorder")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> reorder(@Valid @RequestBody com.monserrat.dto.ReorderRequest request) {
+        redSocialService.reorder(request.getIds());
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class TallerDTO {
     private Long id;
+    private Long catalogoId;
+    private BigDecimal montoPagado;
     private String alumnoDni;
     private String alumnoCodigo;
     private String alumnoNombre;

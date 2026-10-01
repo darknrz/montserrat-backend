@@ -19,6 +19,7 @@ public class DatabaseSchemaUpdater {
     @PostConstruct
     public void updateSchema() {
         ensureUsuariosAcademicosCodigoChatbot();
+        dropEnumCheckConstraints();
 
         try {
             Integer length = jdbcTemplate.queryForObject(
@@ -59,6 +60,31 @@ public class DatabaseSchemaUpdater {
             }
         } catch (Exception ex) {
             LOGGER.debug("codigo_chatbot schema update skipped or failed: {}", ex.getMessage());
+        }
+    }
+
+    /**
+     * Hibernate 6 crea CHECK constraints para columnas enum (nivel_educativo, grado). Al agregar
+     * INICIAL a NivelEducativo/Grado, esos checks (creados con la lista antigua) rechazarian el nuevo valor.
+     * Se eliminan solo los checks que mencionan esas columnas; los datos existentes no se modifican.
+     */
+    private void dropEnumCheckConstraints() {
+        try {
+            var rows = jdbcTemplate.queryForList(
+                    "SELECT c.conrelid::regclass::text AS tabla, c.conname AS nombre " +
+                            "FROM pg_constraint c " +
+                            "WHERE c.contype = 'c' " +
+                            "AND c.conrelid::regclass::text IN ('usuarios_academicos', 'asignaciones_academicas') " +
+                            "AND (pg_get_constraintdef(c.oid) ILIKE '%nivel_educativo%' " +
+                            "OR pg_get_constraintdef(c.oid) ILIKE '%grado%')");
+            for (var row : rows) {
+                String tabla = String.valueOf(row.get("tabla"));
+                String nombre = String.valueOf(row.get("nombre"));
+                LOGGER.info("Dropping enum check constraint {} on {}", nombre, tabla);
+                jdbcTemplate.execute("ALTER TABLE " + tabla + " DROP CONSTRAINT IF EXISTS \"" + nombre + "\"");
+            }
+        } catch (Exception ex) {
+            LOGGER.debug("Enum check constraint cleanup skipped or failed: {}", ex.getMessage());
         }
     }
 }

@@ -12,6 +12,8 @@ public class AcademicoServiceHelper {
         String normalized = gradoStr.trim().toUpperCase().replace(" ", "_").replace("-", "_");
 
         switch (normalized) {
+            case "INICIAL":
+                return Grado.INICIAL;
             case "PRIMERO":
             case "1ERO":
             case "1RO":

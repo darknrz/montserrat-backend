@@ -40,6 +40,18 @@ public class AcademicoConfigDTO {
     @Builder.Default
     private List<CatalogItemDTO> seccionesSecundaria = new ArrayList<>();
     @Builder.Default
+    private List<CatalogItemDTO> cursosInicial = new ArrayList<>();
+    @Builder.Default
+    private List<CatalogItemDTO> competenciasInicial = new ArrayList<>();
+    @Builder.Default
+    private Map<String, List<String>> competenciasPorCursoInicial = new LinkedHashMap<>();
+    @Builder.Default
+    private Map<String, List<String>> docentesPorCompetenciaInicial = new LinkedHashMap<>();
+    @Builder.Default
+    private List<CatalogItemDTO> gradosInicial = new ArrayList<>();
+    @Builder.Default
+    private List<CatalogItemDTO> seccionesInicial = new ArrayList<>();
+    @Builder.Default
     private List<SalonItemDTO> salones = new ArrayList<>();
     @Builder.Default
     private Integer minAsistenciaPorcentaje = 70;

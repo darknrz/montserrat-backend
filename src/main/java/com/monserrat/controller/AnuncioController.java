@@ -49,4 +49,17 @@ public class AnuncioController {
         anuncioService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<AnuncioDTO>> getAllAdmin() {
+        return ResponseEntity.ok(anuncioService.getAllAdmin());
+    }
+
+    @PutMapping("/reorder")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> reorder(@Valid @RequestBody com.monserrat.dto.ReorderRequest request) {
+        anuncioService.reorder(request.getIds());
+        return ResponseEntity.noContent().build();
+    }
 }

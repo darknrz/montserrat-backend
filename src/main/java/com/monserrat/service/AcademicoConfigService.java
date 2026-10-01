@@ -45,6 +45,8 @@ public class AcademicoConfigService {
         Map<String, List<String>> docentesPorCompetencia = new LinkedHashMap<>();
         Map<String, List<String>> competenciasPorCursoSecundaria = new LinkedHashMap<>();
         Map<String, List<String>> docentesPorCompetenciaSecundaria = new LinkedHashMap<>();
+        Map<String, List<String>> competenciasPorCursoInicial = new LinkedHashMap<>();
+        Map<String, List<String>> docentesPorCompetenciaInicial = new LinkedHashMap<>();
 
         catalogoRepository.findAllByOrderByOrdenAscIdAsc().forEach(item -> {
             addCatalog(dto, item);
@@ -60,8 +62,16 @@ public class AcademicoConfigService {
             if ("DOCENTE_COMPETENCIA".equals(item.getTipo()) && "SECUNDARIA".equals(item.getNivel())) {
                 docentesPorCompetenciaSecundaria.put(item.getCodigo(), parseCsvList(item.getNombre()));
             }
+            if ("COMPETENCIA_CURSO".equals(item.getTipo()) && "INICIAL".equals(item.getNivel())) {
+                competenciasPorCursoInicial.put(item.getCodigo(), parseCsvList(item.getNombre()));
+            }
+            if ("DOCENTE_COMPETENCIA".equals(item.getTipo()) && "INICIAL".equals(item.getNivel())) {
+                docentesPorCompetenciaInicial.put(item.getCodigo(), parseCsvList(item.getNombre()));
+            }
         });
 
+        dto.setCompetenciasPorCursoInicial(competenciasPorCursoInicial);
+        dto.setDocentesPorCompetenciaInicial(docentesPorCompetenciaInicial);
         dto.setCompetenciasPorCursoPrimaria(competenciasPorCurso);
         dto.setDocentesPorCompetencia(docentesPorCompetencia);
         dto.setCompetenciasPorCursoSecundaria(competenciasPorCursoSecundaria);
@@ -95,6 +105,12 @@ public class AcademicoConfigService {
                 addCatalogos(catalogos, "SECCION", "PRIMARIA", request.getSeccionesPrimaria());
                 addCatalogos(catalogos, "SECCION", "SECUNDARIA", request.getSeccionesSecundaria());
                 addCatalogos(catalogos, "NIVEL_ACADEMICO", "GLOBAL", request.getNivelesAcademicos());
+                addCatalogos(catalogos, "AREA_CURRICULAR", "INICIAL", request.getCursosInicial());
+                addCatalogos(catalogos, "COMPETENCIA", "INICIAL", request.getCompetenciasInicial());
+                addCatalogos(catalogos, "GRADO", "INICIAL", request.getGradosInicial());
+                addCatalogos(catalogos, "SECCION", "INICIAL", request.getSeccionesInicial());
+                addMapeo(catalogos, "COMPETENCIA_CURSO", "INICIAL", 5000, request.getCompetenciasPorCursoInicial());
+                addMapeo(catalogos, "DOCENTE_COMPETENCIA", "INICIAL", 6000, request.getDocentesPorCompetenciaInicial());
                 addCompetenciasPorCurso(catalogos, request.getCompetenciasPorCursoPrimaria());
                 addDocentesPorCompetencia(catalogos, request.getDocentesPorCompetencia());
                 addCompetenciasPorCursoSecundaria(catalogos, request.getCompetenciasPorCursoSecundaria());
@@ -276,6 +292,10 @@ public class AcademicoConfigService {
             case "SECCION_PRIMARIA" -> dto.getSeccionesPrimaria().add(catalogItem);
             case "SECCION_SECUNDARIA" -> dto.getSeccionesSecundaria().add(catalogItem);
             case "NIVEL_ACADEMICO_GLOBAL" -> dto.getNivelesAcademicos().add(catalogItem);
+            case "AREA_CURRICULAR_INICIAL" -> dto.getCursosInicial().add(catalogItem);
+            case "COMPETENCIA_INICIAL" -> dto.getCompetenciasInicial().add(catalogItem);
+            case "GRADO_INICIAL" -> dto.getGradosInicial().add(catalogItem);
+            case "SECCION_INICIAL" -> dto.getSeccionesInicial().add(catalogItem);
             case "COMPETENCIA_SECUNDARIA" -> dto.getCompetenciasSecundaria().add(catalogItem);
             default -> {
             }
@@ -314,6 +334,22 @@ public class AcademicoConfigService {
             target.add(CatalogoAcademico.builder()
                     .tipo("DOCENTE_COMPETENCIA")
                     .nivel("SECUNDARIA")
+                    .codigo(entry.getKey())
+                    .nombre(serializeList(entry.getValue()))
+                    .activo(true)
+                    .orden(index++)
+                    .build());
+        }
+    }
+
+    private void addMapeo(List<CatalogoAcademico> target, String tipo, String nivel, int startOrden,
+                          Map<String, List<String>> mappings) {
+        if (mappings == null || mappings.isEmpty()) return;
+        int index = startOrden;
+        for (Map.Entry<String, List<String>> entry : mappings.entrySet()) {
+            target.add(CatalogoAcademico.builder()
+                    .tipo(tipo)
+                    .nivel(nivel)
                     .codigo(entry.getKey())
                     .nombre(serializeList(entry.getValue()))
                     .activo(true)

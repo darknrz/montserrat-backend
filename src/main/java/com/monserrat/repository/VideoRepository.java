@@ -6,5 +6,6 @@ import java.util.List;
 
 public interface VideoRepository extends JpaRepository<Video, Long> {
     List<Video> findByActivoTrueOrderByOrdenAsc();
+    List<Video> findAllByOrderByOrdenAscIdAsc();
     List<Video> findByTagAndActivoTrue(String tag);
 }

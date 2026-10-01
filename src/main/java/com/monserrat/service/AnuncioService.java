@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +21,24 @@ public class AnuncioService {
 
     public List<AnuncioDTO> getAllActive() {
         return anuncioRepository.findActiveValidOrderByOrdenAsc().stream().map(this::toDTO).toList();
+    }
+
+    public List<AnuncioDTO> getAllAdmin() {
+        return anuncioRepository.findAllByOrderByOrdenAscIdAsc().stream().map(this::toDTO).toList();
+    }
+
+    @Transactional
+    public void reorder(List<Long> ids) {
+        Map<Long, Anuncio> byId = new HashMap<>();
+        anuncioRepository.findAllById(ids).forEach(a -> byId.put(a.getId(), a));
+        int i = 0;
+        for (Long id : ids) {
+            Anuncio a = byId.get(id);
+            if (a != null) {
+                a.setOrden(i++);
+                anuncioRepository.save(a);
+            }
+        }
     }
 
     public AnuncioDTO getById(Long id) {
@@ -38,9 +58,9 @@ public class AnuncioService {
                 .imageUrl(dto.getImageUrl())
                 .imagePublicId(dto.getImagePublicId())
                 .imageMimeType(dto.getImageMimeType())
-                .mostrarEnPopup(dto.getMostrarEnPopup() != null ? dto.getMostrarEnPopup() : true)
+                .mostrarEnPopup(true)
                 .activo(dto.getActivo() != null ? dto.getActivo() : true)
-                .orden(dto.getOrden() != null ? dto.getOrden() : 0)
+                .orden(anuncioRepository.findAllByOrderByOrdenAscIdAsc().stream().mapToInt(a -> a.getOrden() != null ? a.getOrden() : 0).findFirst().orElse(1) - 1)
                 .expiresAt(dto.getExpiresAt() != null && !dto.getExpiresAt().trim().isEmpty() ? LocalDate.parse(dto.getExpiresAt()) : null)
                 .build();
         return toDTO(anuncioRepository.save(anuncio));
@@ -60,19 +80,16 @@ public class AnuncioService {
         anuncio.setImagePublicId(dto.getImagePublicId());
         anuncio.setImageMimeType(dto.getImageMimeType());
         anuncio.setExpiresAt(dto.getExpiresAt() != null && !dto.getExpiresAt().trim().isEmpty() ? LocalDate.parse(dto.getExpiresAt()) : null);
-        if (dto.getMostrarEnPopup() != null) anuncio.setMostrarEnPopup(dto.getMostrarEnPopup());
         if (dto.getActivo() != null) anuncio.setActivo(dto.getActivo());
-        if (dto.getOrden() != null) anuncio.setOrden(dto.getOrden());
         return toDTO(anuncioRepository.save(anuncio));
     }
 
     @Transactional
     public void delete(Long id) {
-        Anuncio anuncio = findOrThrow(id);
-        anuncio.setActivo(false);
-        anuncioRepository.save(anuncio);
+        hardDelete(id);
     }
 
+    @Transactional
     public void hardDelete(Long id) {
         if (!anuncioRepository.existsById(id)) {
             throw new EntityNotFoundException("Anuncio no encontrado: " + id);

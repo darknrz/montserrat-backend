@@ -195,9 +195,9 @@ public class AcademicoService {
                 .codigo(codigoFinal)
                 .codigoChatbot(generarCodigoChatbotUnico())
                 .password(passwordEncoder.encode(request.getDni()))
-                .nombre(request.getNombre())
-                .nombres(request.getNombres())
-                .apellidos(request.getApellidos())
+                .nombre(nombreMayusculas(request.getNombre()))
+                .nombres(nombreMayusculas(request.getNombres()))
+                .apellidos(nombreMayusculas(request.getApellidos()))
                 .correo(request.getCorreo())
                 .direccion(request.getDireccion())
                 .fechaNacimiento(request.getFechaNacimiento())
@@ -540,7 +540,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
         validarDatosAcademicos(RolUsuario.ALUMNO, request.getNivelEducativo(), request.getGrado());
         validarAlumnoEnAula(alumno, request.getNivelEducativo(), request.getGrado(), request.getSeccion());
         validarDocenteCurso(docente, request.getNivelEducativo(), request.getCurso());
-        if (NivelEducativo.PRIMARIA.equals(request.getNivelEducativo())) {
+        if (esNivelBasico(request.getNivelEducativo())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "En primaria asigna el docente al salon completo desde la opcion de asignacion de aula");
         }
@@ -621,7 +621,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
         validarDatosAcademicos(RolUsuario.ALUMNO, request.getNivelEducativo(), request.getGrado());
         validarAlumnoEnAula(alumno, request.getNivelEducativo(), request.getGrado(), request.getSeccion());
         validarDocenteCurso(docente, request.getNivelEducativo(), request.getCurso());
-        if (NivelEducativo.PRIMARIA.equals(request.getNivelEducativo())) {
+        if (esNivelBasico(request.getNivelEducativo())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "En primaria asigna el docente al salon completo desde la opcion de asignacion de aula");
         }
@@ -817,6 +817,8 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
         UsuarioAcademico alumno = taller.getAlumno();
         return TallerDTO.builder()
                 .id(taller.getId())
+                .catalogoId(taller.getCatalogo() == null ? null : taller.getCatalogo().getId())
+                .montoPagado(taller.getMontoPagado())
                 .alumnoDni(alumno.getDni())
                 .alumnoCodigo(alumno.getCodigo())
                 .alumnoNombre(alumno.getNombre())
@@ -1030,13 +1032,13 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
         }
 
         if (request.getNombre() != null) {
-            usuario.setNombre(request.getNombre());
+            usuario.setNombre(nombreMayusculas(request.getNombre()));
         }
         if (request.getNombres() != null) {
-            usuario.setNombres(request.getNombres());
+            usuario.setNombres(nombreMayusculas(request.getNombres()));
         }
         if (request.getApellidos() != null) {
-            usuario.setApellidos(request.getApellidos());
+            usuario.setApellidos(nombreMayusculas(request.getApellidos()));
         }
         if (request.getCorreo() != null) {
             usuario.setCorreo(request.getCorreo());
@@ -1164,16 +1166,26 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
         if (nivelEducativo == null || grado == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El alumno debe tener nivel educativo y grado");
         }
+        boolean gradoInicial = Grado.INICIAL.equals(grado);
         boolean gradoPrimaria = grado.name().endsWith("_PRIMARIA");
         boolean gradoSecundaria = grado.name().endsWith("_SECUNDARIA");
-        if ((NivelEducativo.PRIMARIA.equals(nivelEducativo) && !gradoPrimaria)
+        if ((NivelEducativo.INICIAL.equals(nivelEducativo) && !gradoInicial)
+                || (NivelEducativo.PRIMARIA.equals(nivelEducativo) && !gradoPrimaria)
                 || (NivelEducativo.SECUNDARIA.equals(nivelEducativo) && !gradoSecundaria)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El grado no corresponde al nivel educativo");
         }
     }
 
+    private static boolean esNivelBasico(NivelEducativo nivel) {
+        return NivelEducativo.PRIMARIA.equals(nivel) || NivelEducativo.INICIAL.equals(nivel);
+    }
+
+    private static String nombreMayusculas(String value) {
+        return value == null ? null : value.trim().replaceAll("\s+", " ").toUpperCase(java.util.Locale.forLanguageTag("es-PE"));
+    }
+
     private List<CursoAcademico> cursosParaAsignacionAula(AsignacionAulaRequest request) {
-        if (NivelEducativo.PRIMARIA.equals(request.getNivelEducativo())) {
+        if (esNivelBasico(request.getNivelEducativo())) {
             return request.getCurso() == null
                     ? Arrays.asList(CursoAcademico.values())
                     : List.of(request.getCurso());
@@ -1195,7 +1207,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
     }
 
     private void validarDocenteCurso(UsuarioAcademico docente, NivelEducativo nivelEducativo, CursoAcademico curso) {
-        if (NivelEducativo.PRIMARIA.equals(nivelEducativo)) {
+        if (esNivelBasico(nivelEducativo)) {
             String materia = normalizarTexto(docente.getMateria());
             if (!materia.isBlank() && curso == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -1215,7 +1227,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
     }
 
     private void validarDocentePrimariaUnSoloSalon(UsuarioAcademico docente, AsignacionAulaRequest request) {
-        if (!NivelEducativo.PRIMARIA.equals(request.getNivelEducativo())) {
+        if (!esNivelBasico(request.getNivelEducativo())) {
             return;
         }
         String materia = normalizarTexto(docente.getMateria());
@@ -1223,7 +1235,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
             return;
         }
         boolean tieneOtroSalon = asignacionRepository.findByDocente_DniAndActivoTrue(docente.getDni()).stream()
-                .anyMatch(asignacion -> NivelEducativo.PRIMARIA.equals(asignacion.getNivelEducativo())
+                .anyMatch(asignacion -> esNivelBasico(asignacion.getNivelEducativo())
                         && (!Objects.equals(asignacion.getGrado(), request.getGrado())
                                 || !Objects.equals(asignacion.getSeccion(), request.getSeccion())));
         if (tieneOtroSalon) {
@@ -1658,7 +1670,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                     String nivelAcademico = getCellValue(row, 1).trim();    // Nivel académico o ignorar
                     String gradoStr = getCellValue(row, 2).trim();          // Grado
                     String inicioPeriodoStr = getCellValue(row, 3).trim();  // Fecha inicio
-                    String nombreCompleto = getCellValue(row, 4).trim();    // Nombre del alumno
+                    String nombreCompleto = nombreMayusculas(getCellValue(row, 4));    // Nombre del alumno
 
                     // Validaciones
                     if (nombreCompleto.isBlank()) {

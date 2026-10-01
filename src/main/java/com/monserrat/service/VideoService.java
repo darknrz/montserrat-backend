@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +29,29 @@ public class VideoService {
     public List<VideoDTO> getByTag(String tag) {
         return videoRepository.findByTagAndActivoTrue(tag)
                 .stream().map(this::toDTO).toList();
+    }
+
+    public List<VideoDTO> getAllAdmin() {
+        return videoRepository.findAllByOrderByOrdenAscIdAsc().stream().map(this::toDTO).toList();
+    }
+
+    @Transactional
+    public void reorder(List<Long> ids) {
+        Map<Long, Video> byId = new HashMap<>();
+        videoRepository.findAllById(ids).forEach(v -> byId.put(v.getId(), v));
+        int i = 0;
+        for (Long id : ids) {
+            Video v = byId.get(id);
+            if (v != null) {
+                v.setOrden(i++);
+                videoRepository.save(v);
+            }
+        }
+    }
+
+    private int nextOrden() {
+        return videoRepository.findAllByOrderByOrdenAscIdAsc().stream()
+                .mapToInt(v -> v.getOrden() != null ? v.getOrden() : 0).max().orElse(-1) + 1;
     }
 
     public VideoDTO getById(Long id) {
@@ -47,7 +72,7 @@ public class VideoService {
                 .formato(dto.getFormato())
                 .tag(dto.getTag())
                 .tagColor(dto.getTagColor())
-                .orden(dto.getOrden() != null ? dto.getOrden() : 0)
+                .orden(nextOrden())
                 .activo(dto.getActivo() != null ? dto.getActivo() : true)
                 .creadoEn(LocalDateTime.now())
                 .build();
@@ -66,16 +91,13 @@ public class VideoService {
         video.setFormato(dto.getFormato());
         video.setTag(dto.getTag());
         video.setTagColor(dto.getTagColor());
-        if (dto.getOrden() != null) video.setOrden(dto.getOrden());
         if (dto.getActivo() != null) video.setActivo(dto.getActivo());
         return toDTO(videoRepository.save(video));
     }
 
     @Transactional
     public void delete(Long id) {
-        Video video = findOrThrow(id);
-        video.setActivo(false);
-        videoRepository.save(video);
+        videoRepository.delete(findOrThrow(id));
     }
 
     @Transactional

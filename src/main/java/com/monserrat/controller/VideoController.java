@@ -86,4 +86,17 @@ public class VideoController {
         videoService.hardDelete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<VideoDTO>> getAllAdmin() {
+        return ResponseEntity.ok(videoService.getAllAdmin());
+    }
+
+    @PutMapping("/reorder")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> reorder(@Valid @RequestBody com.monserrat.dto.ReorderRequest request) {
+        videoService.reorder(request.getIds());
+        return ResponseEntity.noContent().build();
+    }
 }
