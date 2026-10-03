@@ -47,6 +47,7 @@ public class AnuncioService {
 
     @Transactional
     public AnuncioDTO create(AnuncioDTO dto) {
+        exigirImagen(dto);
         Anuncio anuncio = Anuncio.builder()
                 .titulo(dto.getTitulo())
                 .mensaje(dto.getMensaje())
@@ -68,6 +69,7 @@ public class AnuncioService {
 
     @Transactional
     public AnuncioDTO update(Long id, AnuncioDTO dto) {
+        exigirImagen(dto);
         Anuncio anuncio = findOrThrow(id);
         anuncio.setTitulo(dto.getTitulo());
         anuncio.setMensaje(dto.getMensaje());
@@ -95,6 +97,14 @@ public class AnuncioService {
             throw new EntityNotFoundException("Anuncio no encontrado: " + id);
         }
         anuncioRepository.deleteById(id);
+    }
+
+    /** La imagen es obligatoria al crear o editar; el documento adjunto es opcional. */
+    private void exigirImagen(AnuncioDTO dto) {
+        if (dto.getImageUrl() == null || dto.getImageUrl().isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "La imagen del anuncio es obligatoria");
+        }
     }
 
     private Anuncio findOrThrow(Long id) {

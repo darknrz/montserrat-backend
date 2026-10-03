@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Year;
 import java.time.format.DateTimeFormatter;
 import java.text.Normalizer;
 import java.util.Comparator;
@@ -78,6 +77,7 @@ public class ChatbotService {
     private final PensionMensualRepository pensionMensualRepository;
     private final AsignacionAcademicaRepository asignacionAcademicaRepository;
     private final CatalogoAcademicoRepository catalogoAcademicoRepository;
+    private final AnioEscolarService anioEscolarService;
 
     public ChatbotCreateConversationResponse createConversation() {
         ChatbotConversation conversation = conversationRepository.save(ChatbotConversation.builder()
@@ -664,7 +664,7 @@ public class ChatbotService {
     }
 
     private String buildPensionAnswer(UsuarioAcademico alumno, String conversationHistory) {
-        int year = Year.now().getValue();
+        int year = anioEscolarService.anioActivo();
         List<PensionMensual> pensiones = pensionMensualRepository.findByAlumno_DniAndAnio(alumno.getDni(), year)
                 .stream()
                 .sorted(Comparator.comparing(PensionMensual::getMes))

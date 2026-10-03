@@ -63,6 +63,7 @@ public class AcademicoService {
     private final PeriodoBimestreRepository periodoBimestreRepository;
     private final PasswordEncoder passwordEncoder;
     private final com.monserrat.repository.CatalogoAcademicoRepository catalogoRepository;
+    private final AnioEscolarService anioEscolarService;
 
     @Transactional
     public List<UsuarioAcademicoDTO> listarUsuarios() {
@@ -453,7 +454,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
 
     @Transactional(readOnly = true)
     public List<PensionMensualDTO> listarPensionesAlumno(String alumnoDni, Integer anio) {
-        int year = anio == null ? java.time.Year.now().getValue() : anio;
+        int year = anio == null ? anioEscolarService.anioActivo() : anio;
         UsuarioAcademico alumno = exigirRol(buscarPorDni(alumnoDni), RolUsuario.ALUMNO);
         List<PensionMensual> pagos = pensionMensualRepository.findByAlumno_DniAndAnio(alumno.getDni(), year);
         java.util.Map<Integer, PensionMensual> pagosMap = pagos.stream()
@@ -658,7 +659,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
 
     @Transactional(readOnly = true)
     public List<PensionMensualDTO> listarPensionesMensuales(Integer anio) {
-        int year = anio == null ? java.time.Year.now().getValue() : anio;
+        int year = anio == null ? anioEscolarService.anioActivo() : anio;
         List<UsuarioAcademico> alumnos = usuarioRepository.findByRolAndActivoTrue(RolUsuario.ALUMNO).stream()
                 .sorted(Comparator
                         .comparing((UsuarioAcademico alumno) -> alumno.getNivelEducativo() == null ? ""
@@ -707,7 +708,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
 
     @Transactional(readOnly = true)
     public List<MatriculaDTO> listarMatriculas(Integer anio) {
-        int year = anio == null ? java.time.Year.now().getValue() : anio;
+        int year = anio == null ? anioEscolarService.anioActivo() : anio;
         List<UsuarioAcademico> alumnos = usuarioRepository.findByRolAndActivoTrue(RolUsuario.ALUMNO).stream()
                 .sorted(Comparator.comparing(UsuarioAcademico::getNombre, String.CASE_INSENSITIVE_ORDER))
                 .toList();
@@ -720,7 +721,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
 
     @Transactional(readOnly = true)
     public MatriculaDTO obtenerMatriculaAlumno(String alumnoDni, Integer anio) {
-        int year = anio == null ? java.time.Year.now().getValue() : anio;
+        int year = anio == null ? anioEscolarService.anioActivo() : anio;
         UsuarioAcademico alumno = exigirRol(buscarPorDni(alumnoDni), RolUsuario.ALUMNO);
         Matricula matricula = matriculaRepository.findByAlumno_DniAndAnio(alumno.getDni(), year).orElse(null);
         return toMatriculaDto(alumno, year, matricula);
@@ -840,7 +841,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
     @Transactional(readOnly = true)
     public List<PeriodoBimestreDTO> listarPeriodosBimestres(Integer anio) {
         if (anio == null) {
-            anio = java.time.Year.now().getValue();
+            anio = anioEscolarService.anioActivo();
         }
         return periodoBimestreRepository.findByAnioOrderByNumeroBimestreAsc(anio).stream()
                 .map(this::toPeriodoBimestreDto)
@@ -1461,7 +1462,18 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
         sincronizarAsignacionesCatalogoParaDocente(docente.getDni());
     }
 
+    /** Codigos "grado||salon||curso||competencia" activos (reglas por salon). */
+    private static java.util.Set<String> codigosFinosDocenteCompetencia(
+            java.util.List<com.monserrat.entity.CatalogoAcademico> mappings) {
+        return mappings.stream()
+                .filter(m -> "DOCENTE_COMPETENCIA".equals(m.getTipo()) && Boolean.TRUE.equals(m.getActivo()))
+                .map(com.monserrat.entity.CatalogoAcademico::getCodigo)
+                .filter(c -> c != null && c.split("\\|\\|").length >= 4)
+                .collect(Collectors.toSet());
+    }
+
     private void sincronizarAsignacionesCatalogoParaDocente(String docenteDni) {
+        java.util.Set<String> codigosFinos = codigosFinosDocenteCompetencia(catalogoRepository.findAll());
         catalogoRepository.findAll().stream()
                 .filter(mapping -> "DOCENTE_COMPETENCIA".equals(mapping.getTipo()))
                 .filter(mapping -> Boolean.TRUE.equals(mapping.getActivo()))
@@ -1497,6 +1509,10 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                     Seccion seccionFiltro = seccion;
                     usuarioRepository.findByRolAndGradoAndActivoTrue(RolUsuario.ALUMNO, grado).stream()
                             .filter(alumno -> seccionFiltro == null || seccionFiltro.equals(alumno.getSeccion()))
+                            // Regla general: no aplica a alumnos cuyo salon tiene una regla propia para esta competencia.
+                            .filter(alumno -> seccionFiltro != null || alumno.getSeccion() == null
+                                    || !codigosFinos.contains(parts[0] + "||" + alumno.getSeccion().name() + "||"
+                                            + parts[1] + "||" + parts[2]))
                             .forEach(alumno -> crearAsignacionesPorDocentes(alumno, curso, docenteDni));
                 });
     }
@@ -1520,7 +1536,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                 .updatedAt(asignacion.getUpdatedAt())
                 .build();
     }
-    private void replicarAsignacionesDeAulaParaAlumno(UsuarioAcademico alumno) {
+    void replicarAsignacionesDeAulaParaAlumno(UsuarioAcademico alumno) {
         // Cursos que ya se resuelven mediante el catalogo (paso 1). El paso 2 (aula) no debe
         // tocarlos: es un mapa de un solo docente por curso, pensado para el modelo antiguo de
         // "un docente por aula", y pisaria con un solo docente "de un companero" un curso que el
@@ -1533,6 +1549,7 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
             java.util.List<com.monserrat.entity.CatalogoAcademico> mappings = catalogoRepository.findAll();
             
             java.util.Map<CursoAcademico, java.util.Set<String>> cursoDocenteDniMap = new java.util.HashMap<>();
+            java.util.Set<String> codigosFinos = codigosFinosDocenteCompetencia(mappings);
             for (com.monserrat.entity.CatalogoAcademico mapping : mappings) {
                 if ("DOCENTE_COMPETENCIA".equals(mapping.getTipo()) && 
                     Boolean.TRUE.equals(mapping.getActivo()) && 
@@ -1555,6 +1572,11 @@ public List<NotaAcademicaDTO> listarTodasLasNotas() {
                                 curso = CursoAcademico.valueOf(parts[2]);
                             } else {
                                 curso = CursoAcademico.valueOf(parts[1]);
+                                // Si existe una regla por salon para esta misma competencia, manda esa.
+                                if (alumno.getSeccion() != null && codigosFinos.contains(
+                                        parts[0] + "||" + alumno.getSeccion().name() + "||" + parts[1] + "||" + parts[2])) {
+                                    continue;
+                                }
                             }
                             String docentesCsv = mapping.getNombre();
                             if (docentesCsv != null && !docentesCsv.isBlank()) {

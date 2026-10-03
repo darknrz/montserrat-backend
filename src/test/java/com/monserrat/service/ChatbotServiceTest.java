@@ -81,6 +81,9 @@ class ChatbotServiceTest {
     @Mock
     private CatalogoAcademicoRepository catalogoAcademicoRepository;
 
+    @Mock
+    private AnioEscolarService anioEscolarService;
+
     private ChatbotService chatbotService;
 
     @BeforeEach
@@ -97,7 +100,8 @@ class ChatbotServiceTest {
                 asistenciaAcademicaRepository,
                 pensionMensualRepository,
                 asignacionAcademicaRepository,
-                catalogoAcademicoRepository
+                catalogoAcademicoRepository,
+                anioEscolarService
         );
     }
 
@@ -362,6 +366,7 @@ class ChatbotServiceTest {
 
     @Test
     void processUserMessageReturnsVerifiedPension() {
+        when(anioEscolarService.anioActivo()).thenReturn(Year.now().getValue());
         ChatbotConversation conversation = ChatbotConversation.builder()
                 .id(1L)
                 .canal("WEB")
